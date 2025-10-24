@@ -1,0 +1,956 @@
+2025-08-14 17:52:36,693 - rag.retriever - INFO - HybridRetriever initialized with similarity threshold: 0.25
+2025-08-14 17:52:36,693 - retriever - INFO - HybridRetriever initialized with similarity threshold: 0.25
+2025-08-14 17:52:36,693 - llm.conversation - INFO - ConversationalAgent initialized successfully
+2025-08-14 17:52:37,660 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:37,662 - rag.retriever - ERROR - Error generating embedding (attempt 1): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:38,988 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:38,990 - rag.retriever - ERROR - Error generating embedding (attempt 2): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:40,270 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:40,270 - rag.retriever - ERROR - Error generating embedding (attempt 3): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:40,274 - rag.retriever - ERROR - Failed to generate embedding for query
+2025-08-14 17:52:40,524 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:40,525 - rag.retriever - ERROR - Error generating embedding (attempt 1): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:41,855 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:41,856 - rag.retriever - ERROR - Error generating embedding (attempt 2): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:43,185 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:43,186 - rag.retriever - ERROR - Error generating embedding (attempt 3): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:43,186 - rag.retriever - ERROR - Failed to generate embedding for query
+2025-08-14 17:52:43,494 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:43,496 - rag.retriever - ERROR - Error generating embedding (attempt 1): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:44,722 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:44,724 - rag.retriever - ERROR - Error generating embedding (attempt 2): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:45,951 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:45,952 - rag.retriever - ERROR - Error generating embedding (attempt 3): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:45,952 - rag.retriever - ERROR - Failed to generate embedding for query
+2025-08-14 17:52:46,258 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:46,259 - rag.retriever - ERROR - Error generating embedding (attempt 1): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:47,488 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:47,490 - rag.retriever - ERROR - Error generating embedding (attempt 2): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:48,817 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:48,819 - rag.retriever - ERROR - Error generating embedding (attempt 3): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:48,819 - rag.retriever - ERROR - Failed to generate embedding for query
+2025-08-14 17:52:49,020 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:49,022 - rag.retriever - ERROR - Error generating embedding (attempt 1): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:50,252 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:50,253 - rag.retriever - ERROR - Error generating embedding (attempt 2): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:51,481 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:51,482 - rag.retriever - ERROR - Error generating embedding (attempt 3): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:51,482 - rag.retriever - ERROR - Failed to generate embedding for query
+2025-08-14 17:52:52,299 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:52,300 - rag.retriever - ERROR - Error generating SQL query: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:52,300 - rag.retriever - WARNING - Failed to generate SQL query
+2025-08-14 17:52:52,812 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:52,813 - rag.retriever - ERROR - Error generating SQL query: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:52,813 - rag.retriever - WARNING - Failed to generate SQL query
+2025-08-14 17:52:53,426 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:53,428 - rag.retriever - ERROR - Error generating SQL query: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:53,428 - rag.retriever - WARNING - Failed to generate SQL query
+2025-08-14 17:52:53,959 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:53,961 - rag.retriever - ERROR - Error generating SQL query: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:53,961 - rag.retriever - WARNING - Failed to generate SQL query
+2025-08-14 17:52:54,450 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:54,452 - rag.retriever - ERROR - Error generating SQL query: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:54,452 - rag.retriever - WARNING - Failed to generate SQL query
+2025-08-14 17:52:54,452 - rag.retriever - INFO - Performing vector similarity search...
+2025-08-14 17:52:54,677 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:54,678 - rag.retriever - ERROR - Error generating embedding (attempt 1): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:56,191 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 401 Unauthorized"
+2025-08-14 17:52:56,192 - rag.retriever - ERROR - Error generating embedding (attempt 2): Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-your-***********here. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+2025-08-14 17:52:57,281 - llm.conversation - INFO - ConversationalAgent closed
+2025-08-14 17:53:35,742 - rag.retriever - INFO - HybridRetriever initialized with similarity threshold: 0.25
+2025-08-14 17:53:35,742 - retriever - INFO - HybridRetriever initialized with similarity threshold: 0.25
+2025-08-14 17:53:35,742 - llm.conversation - INFO - ConversationalAgent initialized successfully
+2025-08-14 17:53:37,154 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:53:37,208 - rag.retriever - INFO - Vector search found 2 chunks:
+2025-08-14 17:53:37,209 - rag.retriever - INFO -   Chunk 1: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.232, Text='haklar ulusal ve uluslararas hukuk normalarna uygun olarak yönetilmektedir. irket çal anlarna y...'
+2025-08-14 17:53:37,209 - rag.retriever - INFO -   Chunk 2: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=39, Similarity=0.229, Text='tanmlanan risk yönetimi ak emasna göre risk yönetim süreci olu turulur. Kurumsal risk yönetimi sü...'
+2025-08-14 17:53:37,209 - rag.retriever - INFO - Vector search found 2 chunks across 3 tables
+2025-08-14 17:53:38,279 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:53:38,353 - rag.retriever - INFO - Vector search found 1 chunks:
+2025-08-14 17:53:38,353 - rag.retriever - INFO -   Chunk 1: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=2, Similarity=0.151, Text='bağımsız denetim sırasında elde ettiğimiz bilgilerle tutarlıdır ve gerçeği yansıtmaktadır. 2) Görüşü...'
+2025-08-14 17:53:38,353 - rag.retriever - INFO - Vector search found 1 chunks across 3 tables
+2025-08-14 17:53:38,996 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:53:39,061 - rag.retriever - INFO - Vector search found 9 chunks:
+2025-08-14 17:53:39,061 - rag.retriever - INFO -   Chunk 1: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.226, Text='alanmzda sahip oldu umuz bilgiler çerçevesinde, Tebli uyarnca hazrlanm Finansal Tablolarn kons...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO -   Chunk 2: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.210, Text='SASA POLYESTER SANAYİ A.Ş. SPK SERİ II – 14.1 SAYILI TEBLİĞE İSTİNADEN HAZIRLANMIŞ
+1 OCAK – 31 ARALI...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO -   Chunk 3: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=23, Similarity=0.209, Text='TABLE DATA:
+Tesis; yıllık 350.000 ton kapasiteli Elyaf üretimi yapılacak bölüm ile yıllık 52.500 ton...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO -   Chunk 4: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.207, Text='çalışmalarına destek olmak ve adı geçen konularla ilgili gözetim işlevini yerine getirmektir. Deneti...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO -   Chunk 5: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=18, Similarity=0.194, Text='TABLE DATA:
+| Üst Düzey Yöneticiler | | | Görevi | 
+Dr.Mustafa Kemal Öz | | | Genel Müdür, CEO | | 
+...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO -   Chunk 6: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=3, Similarity=0.188, Text='c) Faaliyet raporu ayrıca aşağıdaki hususları da içerir:
+- Faaliyet yılının sona ermesinden sonra Gr...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO -   Chunk 7: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=27, Similarity=0.161, Text='TABLE DATA:
+| | Ocak-Aralık 2024 | | | | | | Ocak-Aralık 2023 | | | | 
+| | Miktar (Ton) | | | Tutar ...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO -   Chunk 8: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.155, Text='yol açmıştır. Küresel taşıma fiyatlarındaki belirsizlikler de önemli bir faktör olmuştur. Yıl boyunc...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO -   Chunk 9: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=32, Similarity=0.103, Text='TABLE DATA:
+| Adı Soyadı | | | Görevi | | Yönetim Kurulu Üyeliğinin Mahiyeti
+Servi Sebe | | | Komite...'
+2025-08-14 17:53:39,062 - rag.retriever - INFO - Vector search found 9 chunks across 3 tables
+2025-08-14 17:53:39,815 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:53:39,859 - rag.retriever - INFO - Vector search found 5 chunks:
+2025-08-14 17:53:39,859 - rag.retriever - INFO -   Chunk 1: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.242, Text='sosyal ve yöneti imsel riskler bu kategoriler altnda entegre olarak yönetilmektedir. irketin ele al...'
+2025-08-14 17:53:39,859 - rag.retriever - INFO -   Chunk 2: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.192, Text='kararlarn uygulanmasn Çal ma Gruplar gerçekle tirmektedir. Çal ma Gruplarnn koordinasyonu ve...'
+2025-08-14 17:53:39,859 - rag.retriever - INFO -   Chunk 3: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.186, Text='2023 ylnda pay sahiplerinden bu konuda bir talep alnmam tr. Hâkim irket ve Hâkim irkete Ba l i...'
+2025-08-14 17:53:39,859 - rag.retriever - INFO -   Chunk 4: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.154, Text='Üretim tesisi için de 13 Eylül 2023 tarihinde te vik belgesi alnm tr. Te vik belgelerine konu rev...'
+2025-08-14 17:53:39,859 - rag.retriever - INFO -   Chunk 5: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=23, Similarity=0.100, Text='ila %5'i aral ndaki miktarnn kar lanmas beklenmektedir. Adana yerle kesinde kurulan GES projes...'
+2025-08-14 17:53:39,859 - rag.retriever - INFO - Vector search found 5 chunks across 3 tables
+2025-08-14 17:53:40,941 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:53:41,029 - rag.retriever - INFO - No vector chunks found matching similarity threshold
+2025-08-14 17:53:41,029 - rag.retriever - INFO - Vector search found 0 chunks across 3 tables
+2025-08-14 17:53:47,697 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:53:47,738 - rag.retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    SUM(CAST("uretimden_satislar" AS BIGINT)) AS total_sales_revenue_2021,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2022,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2023,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2024
+FROM 
+    "iso_2021"
+UNION ALL
+SELECT 
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)),
+    NULL,
+    NULL
+FROM 
+    "iso_2022"
+UNION ALL
+SELECT 
+    NULL,
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)),
+    NULL
+FROM 
+    "iso_2023"
+UNION ALL
+SELECT 
+    NULL,
+    NULL,
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT))
+FROM 
+    "iso_2024";
+2025-08-14 17:53:47,743 - rag.retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.UndefinedColumn) column "uretimden_satislar_net_tl" does not exist
+LINE 3:     SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS tota...
+                     ^
+
+[SQL: SELECT 
+    SUM(CAST("uretimden_satislar" AS BIGINT)) AS total_sales_revenue_2021,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2022,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2023,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2024
+FROM 
+    "iso_2021"
+UNION ALL
+SELECT 
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)),
+    NULL,
+    NULL
+FROM 
+    "iso_2022"
+UNION ALL
+SELECT 
+    NULL,
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)),
+    NULL
+FROM 
+    "iso_2023"
+UNION ALL
+SELECT 
+    NULL,
+    NULL,
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT))
+FROM 
+    "iso_2024";]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2025-08-14 17:53:47,743 - rag.retriever - ERROR - Query was: SELECT 
+    SUM(CAST("uretimden_satislar" AS BIGINT)) AS total_sales_revenue_2021,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2022,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2023,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)) AS total_sales_revenue_2024
+FROM 
+    "iso_2021"
+UNION ALL
+SELECT 
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)),
+    NULL,
+    NULL
+FROM 
+    "iso_2022"
+UNION ALL
+SELECT 
+    NULL,
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT)),
+    NULL
+FROM 
+    "iso_2023"
+UNION ALL
+SELECT 
+    NULL,
+    NULL,
+    NULL,
+    SUM(CAST("uretimden_satislar_net_tl" AS BIGINT))
+FROM 
+    "iso_2024";
+2025-08-14 17:53:52,205 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:53:52,226 - rag.retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "brut_katma_deger_tl" AS "Gross Value Added (TL)",
+    "donem_kari_zarari_vergi_oncesi_tl" AS "Pre-Tax Profit/Loss (TL)"
+FROM 
+    "iso_2024"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+    AND "brut_katma_deger_tl" IS NOT NULL
+    AND "donem_kari_zarari_vergi_oncesi_tl" IS NOT NULL
+ORDER BY 
+    CAST("uretimden_satislar_net_tl" AS BIGINT) DESC
+LIMIT 50;
+2025-08-14 17:53:52,229 - rag.retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "brut_katma_deger_tl" AS "Gross Value Added (TL)",
+    "donem_kari_zarari_vergi_oncesi_tl" AS "Pre-Tax Profit/Loss (TL)"
+FROM 
+    "iso_2024"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+    AND "brut_katma_deger_tl" IS NOT NULL
+    AND "donem_kari_zarari_vergi_oncesi_tl" IS NOT NULL
+ORDER BY 
+    CAST("uretimden_satislar_net_tl" AS BIGINT) DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:53:52,230 - rag.retriever - ERROR - Query was: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "brut_katma_deger_tl" AS "Gross Value Added (TL)",
+    "donem_kari_zarari_vergi_oncesi_tl" AS "Pre-Tax Profit/Loss (TL)"
+FROM 
+    "iso_2024"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+    AND "brut_katma_deger_tl" IS NOT NULL
+    AND "donem_kari_zarari_vergi_oncesi_tl" IS NOT NULL
+ORDER BY 
+    CAST("uretimden_satislar_net_tl" AS BIGINT) DESC
+LIMIT 50;
+2025-08-14 17:53:56,202 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:53:56,227 - rag.retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "yil",
+    AVG(CAST("vergi_oncesi_kar_zarar" AS BIGINT) / NULLIF(CAST("net_satislar" AS BIGINT), 0)) * 100 AS "average_profit_margin"
+FROM 
+    "iso_2021"
+WHERE 
+    "vergi_oncesi_kar_zarar" != '-' AND "net_satislar" != '-'
+GROUP BY 
+    "yil"
+ORDER BY 
+    "yil" DESC
+LIMIT 50;
+2025-08-14 17:53:56,231 - rag.retriever - INFO - SQL search returned 1 rows
+2025-08-14 17:53:59,578 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:53:59,600 - rag.retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi", 
+    "yil", 
+    "uretimden_satislar_net_tl", 
+    "net_satislar_tl", 
+    "donem_kari_zarari_vergi_oncesi_tl"
+FROM 
+    "iso_2024"
+ORDER BY 
+    CAST("uretimden_satislar_net_tl" AS BIGINT) DESC
+LIMIT 50;
+2025-08-14 17:53:59,602 - rag.retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "kurulus_adi", 
+    "yil", 
+    "uretimden_satislar_net_tl", 
+    "net_satislar_tl", 
+    "donem_kari_zarari_vergi_oncesi_tl"
+FROM 
+    "iso_2024"
+ORDER BY 
+    CAST("uretimden_satislar_net_tl" AS BIGINT) DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:53:59,602 - rag.retriever - ERROR - Query was: SELECT 
+    "kurulus_adi", 
+    "yil", 
+    "uretimden_satislar_net_tl", 
+    "net_satislar_tl", 
+    "donem_kari_zarari_vergi_oncesi_tl"
+FROM 
+    "iso_2024"
+ORDER BY 
+    CAST("uretimden_satislar_net_tl" AS BIGINT) DESC
+LIMIT 50;
+2025-08-14 17:54:03,369 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:54:03,399 - rag.retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "yil" AS "Year",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "donem_kari_zarari_vergi_oncesi_tl" AS "Pre-Tax Profit/Loss (TL)",
+    "favok_tl" AS "EBITDA (TL)"
+FROM 
+    "iso_2024"
+ORDER BY 
+    "yil" DESC, 
+    "uretimden_satislar_net_tl"::bigint DESC
+LIMIT 50;
+2025-08-14 17:54:03,400 - rag.retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "yil" AS "Year",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "donem_kari_zarari_vergi_oncesi_tl" AS "Pre-Tax Profit/Loss (TL)",
+    "favok_tl" AS "EBITDA (TL)"
+FROM 
+    "iso_2024"
+ORDER BY 
+    "yil" DESC, 
+    "uretimden_satislar_net_tl"::bigint DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:54:03,400 - rag.retriever - ERROR - Query was: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "yil" AS "Year",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "donem_kari_zarari_vergi_oncesi_tl" AS "Pre-Tax Profit/Loss (TL)",
+    "favok_tl" AS "EBITDA (TL)"
+FROM 
+    "iso_2024"
+ORDER BY 
+    "yil" DESC, 
+    "uretimden_satislar_net_tl"::bigint DESC
+LIMIT 50;
+2025-08-14 17:54:03,401 - rag.retriever - INFO - Performing vector similarity search...
+2025-08-14 17:54:03,675 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:54:03,713 - rag.retriever - INFO - No vector chunks found matching similarity threshold
+2025-08-14 17:54:03,713 - rag.retriever - INFO - Vector search found 0 chunks across 3 tables
+2025-08-14 17:54:03,713 - rag.retriever - INFO - Vector search completed in 0.31s, found 0 chunks
+2025-08-14 17:54:03,714 - rag.retriever - INFO - Performing SQL-based search...
+2025-08-14 17:54:13,198 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:54:13,261 - rag.retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "iso_2021"."firma_adi" AS "Company Name",
+    "iso_2021"."yil" AS "Year",
+    CAST("iso_2021"."uretimden_satislar" AS BIGINT) AS "Production Sales 2021",
+    CAST("iso_2022"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2022",
+    CAST("iso_2023"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2023",
+    CAST("iso_2024"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2024",
+    CAST("iso_2021"."net_satislar" AS BIGINT) AS "Net Sales 2021",
+    CAST("iso_2022"."net_satislar_tl" AS BIGINT) AS "Net Sales 2022",
+    CAST("iso_2023"."net_satislar_tl" AS BIGINT) AS "Net Sales 2023",
+    CAST("iso_2024"."net_satislar_tl" AS BIGINT) AS "Net Sales 2024",
+    CAST("iso_2021"."vergi_oncesi_kar_zarar" AS BIGINT) AS "Pre-Tax Profit/Loss 2021",
+    CAST("iso_2022"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2022",
+    CAST("iso_2023"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2023",
+    CAST("iso_2024"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2024"
+FROM 
+    "iso_2021"
+JOIN 
+    "iso_2022" ON "iso_2021"."firma_adi" = "iso_2022"."kurulus_adi"
+JOIN 
+    "iso_2023" ON "iso_2021"."firma_adi" = "iso_2023"."kurulus_adi"
+JOIN 
+    "iso_2024" ON "iso_2021"."firma_adi" = "iso_2024"."kurulus_adi"
+WHERE 
+    "iso_2021"."firma_adi" IS NOT NULL
+ORDER BY 
+    "Production Sales 2024" DESC
+LIMIT 50;
+2025-08-14 17:54:13,269 - rag.retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "iso_2021"."firma_adi" AS "Company Name",
+    "iso_2021"."yil" AS "Year",
+    CAST("iso_2021"."uretimden_satislar" AS BIGINT) AS "Production Sales 2021",
+    CAST("iso_2022"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2022",
+    CAST("iso_2023"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2023",
+    CAST("iso_2024"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2024",
+    CAST("iso_2021"."net_satislar" AS BIGINT) AS "Net Sales 2021",
+    CAST("iso_2022"."net_satislar_tl" AS BIGINT) AS "Net Sales 2022",
+    CAST("iso_2023"."net_satislar_tl" AS BIGINT) AS "Net Sales 2023",
+    CAST("iso_2024"."net_satislar_tl" AS BIGINT) AS "Net Sales 2024",
+    CAST("iso_2021"."vergi_oncesi_kar_zarar" AS BIGINT) AS "Pre-Tax Profit/Loss 2021",
+    CAST("iso_2022"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2022",
+    CAST("iso_2023"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2023",
+    CAST("iso_2024"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2024"
+FROM 
+    "iso_2021"
+JOIN 
+    "iso_2022" ON "iso_2021"."firma_adi" = "iso_2022"."kurulus_adi"
+JOIN 
+    "iso_2023" ON "iso_2021"."firma_adi" = "iso_2023"."kurulus_adi"
+JOIN 
+    "iso_2024" ON "iso_2021"."firma_adi" = "iso_2024"."kurulus_adi"
+WHERE 
+    "iso_2021"."firma_adi" IS NOT NULL
+ORDER BY 
+    "Production Sales 2024" DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:54:13,269 - rag.retriever - ERROR - Query was: SELECT 
+    "iso_2021"."firma_adi" AS "Company Name",
+    "iso_2021"."yil" AS "Year",
+    CAST("iso_2021"."uretimden_satislar" AS BIGINT) AS "Production Sales 2021",
+    CAST("iso_2022"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2022",
+    CAST("iso_2023"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2023",
+    CAST("iso_2024"."uretimden_satislar_net_tl" AS BIGINT) AS "Production Sales 2024",
+    CAST("iso_2021"."net_satislar" AS BIGINT) AS "Net Sales 2021",
+    CAST("iso_2022"."net_satislar_tl" AS BIGINT) AS "Net Sales 2022",
+    CAST("iso_2023"."net_satislar_tl" AS BIGINT) AS "Net Sales 2023",
+    CAST("iso_2024"."net_satislar_tl" AS BIGINT) AS "Net Sales 2024",
+    CAST("iso_2021"."vergi_oncesi_kar_zarar" AS BIGINT) AS "Pre-Tax Profit/Loss 2021",
+    CAST("iso_2022"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2022",
+    CAST("iso_2023"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2023",
+    CAST("iso_2024"."donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS "Pre-Tax Profit/Loss 2024"
+FROM 
+    "iso_2021"
+JOIN 
+    "iso_2022" ON "iso_2021"."firma_adi" = "iso_2022"."kurulus_adi"
+JOIN 
+    "iso_2023" ON "iso_2021"."firma_adi" = "iso_2023"."kurulus_adi"
+JOIN 
+    "iso_2024" ON "iso_2021"."firma_adi" = "iso_2024"."kurulus_adi"
+WHERE 
+    "iso_2021"."firma_adi" IS NOT NULL
+ORDER BY 
+    "Production Sales 2024" DESC
+LIMIT 50;
+2025-08-14 17:54:13,270 - rag.retriever - INFO - SQL search completed in 9.56s, found 0 results
+2025-08-14 17:54:13,271 - rag.retriever - INFO - Performing vector similarity search...
+2025-08-14 17:54:13,607 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:54:13,644 - rag.retriever - INFO - No vector chunks found matching similarity threshold
+2025-08-14 17:54:13,644 - rag.retriever - INFO - Vector search found 0 chunks across 3 tables
+2025-08-14 17:54:13,644 - rag.retriever - INFO - Vector search completed in 0.37s, found 0 chunks
+2025-08-14 17:54:13,644 - rag.retriever - INFO - Performing SQL-based search...
+2025-08-14 17:54:24,090 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:54:24,092 - rag.retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "iso_2021"."firma_adi" AS "Company Name",
+    "iso_2021"."uretimden_satislar"::bigint AS "2021 Revenue",
+    "iso_2022"."uretimden_satislar_net_tl"::bigint AS "2022 Revenue",
+    "iso_2023"."uretimden_satislar_net_tl"::bigint AS "2023 Revenue",
+    "iso_2024"."uretimden_satislar_net_tl"::bigint AS "2024 Revenue",
+    ROUND((("iso_2022"."uretimden_satislar_net_tl"::bigint - "iso_2021"."uretimden_satislar"::bigint) / NULLIF("iso_2021"."uretimden_satislar"::bigint, 0)) * 100, 2) AS "2021-2022 Growth (%)",
+    ROUND((("iso_2023"."uretimden_satislar_net_tl"::bigint - "iso_2022"."uretimden_satislar_net_tl"::bigint) / NULLIF("iso_2022"."uretimden_satislar_net_tl"::bigint, 0)) * 100, 2) AS "2022-2023 Growth (%)",
+    ROUND((("iso_2024"."uretimden_satislar_net_tl"::bigint - "iso_2023"."uretimden_satislar_net_tl"::bigint) / NULLIF("iso_2023"."uretimden_satislar_net_tl"::bigint, 0)) * 100, 2) AS "2023-2024 Growth (%)",
+    "iso_2024"."genel_sira_no" AS "2024 Market Position"
+FROM 
+    "iso_2021"
+JOIN 
+    "iso_2022" ON "iso_2021"."firma_adi" = "iso_2022"."kurulus_adi"
+JOIN 
+    "iso_2023" ON "iso_2022"."kurulus_adi" = "iso_2023"."kurulus_adi"
+JOIN 
+    "iso_2024" ON "iso_2023"."kurulus_adi" = "iso_2024"."kurulus_adi"
+WHERE 
+    "iso_2021"."uretimden_satislar" IS NOT NULL
+    AND "iso_2022"."uretimden_satislar_net_tl" IS NOT NULL
+    AND "iso_2023"."uretimden_satislar_net_tl" IS NOT NULL
+    AND "iso_2024"."uretimden_satislar_net_tl" IS NOT NULL
+ORDER BY 
+    "2024 Revenue" DESC
+LIMIT 50;
+2025-08-14 17:54:24,107 - rag.retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "iso_2021"."firma_adi" AS "Company Name",
+    "iso_2021"."uretimden_satislar"::bigint AS "2021 Revenue",
+    "iso_2022"."uretimden_satislar_net_tl"::bigint AS "2022 Revenue",
+    "iso_2023"."uretimden_satislar_net_tl"::bigint AS "2023 Revenue",
+    "iso_2024"."uretimden_satislar_net_tl"::bigint AS "2024 Revenue",
+    ROUND((("iso_2022"."uretimden_satislar_net_tl"::bigint - "iso_2021"."uretimden_satislar"::bigint) / NULLIF("iso_2021"."uretimden_satislar"::bigint, 0)) * 100, 2) AS "2021-2022 Growth (%%)",
+    ROUND((("iso_2023"."uretimden_satislar_net_tl"::bigint - "iso_2022"."uretimden_satislar_net_tl"::bigint) / NULLIF("iso_2022"."uretimden_satislar_net_tl"::bigint, 0)) * 100, 2) AS "2022-2023 Growth (%%)",
+    ROUND((("iso_2024"."uretimden_satislar_net_tl"::bigint - "iso_2023"."uretimden_satislar_net_tl"::bigint) / NULLIF("iso_2023"."uretimden_satislar_net_tl"::bigint, 0)) * 100, 2) AS "2023-2024 Growth (%%)",
+    "iso_2024"."genel_sira_no" AS "2024 Market Position"
+FROM 
+    "iso_2021"
+JOIN 
+    "iso_2022" ON "iso_2021"."firma_adi" = "iso_2022"."kurulus_adi"
+JOIN 
+    "iso_2023" ON "iso_2022"."kurulus_adi" = "iso_2023"."kurulus_adi"
+JOIN 
+    "iso_2024" ON "iso_2023"."kurulus_adi" = "iso_2024"."kurulus_adi"
+WHERE 
+    "iso_2021"."uretimden_satislar" IS NOT NULL
+    AND "iso_2022"."uretimden_satislar_net_tl" IS NOT NULL
+    AND "iso_2023"."uretimden_satislar_net_tl" IS NOT NULL
+    AND "iso_2024"."uretimden_satislar_net_tl" IS NOT NULL
+ORDER BY 
+    "2024 Revenue" DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:54:24,107 - rag.retriever - ERROR - Query was: SELECT 
+    "iso_2021"."firma_adi" AS "Company Name",
+    "iso_2021"."uretimden_satislar"::bigint AS "2021 Revenue",
+    "iso_2022"."uretimden_satislar_net_tl"::bigint AS "2022 Revenue",
+    "iso_2023"."uretimden_satislar_net_tl"::bigint AS "2023 Revenue",
+    "iso_2024"."uretimden_satislar_net_tl"::bigint AS "2024 Revenue",
+    ROUND((("iso_2022"."uretimden_satislar_net_tl"::bigint - "iso_2021"."uretimden_satislar"::bigint) / NULLIF("iso_2021"."uretimden_satislar"::bigint, 0)) * 100, 2) AS "2021-2022 Growth (%)",
+    ROUND((("iso_2023"."uretimden_satislar_net_tl"::bigint - "iso_2022"."uretimden_satislar_net_tl"::bigint) / NULLIF("iso_2022"."uretimden_satislar_net_tl"::bigint, 0)) * 100, 2) AS "2022-2023 Growth (%)",
+    ROUND((("iso_2024"."uretimden_satislar_net_tl"::bigint - "iso_2023"."uretimden_satislar_net_tl"::bigint) / NULLIF("iso_2023"."uretimden_satislar_net_tl"::bigint, 0)) * 100, 2) AS "2023-2024 Growth (%)",
+    "iso_2024"."genel_sira_no" AS "2024 Market Position"
+FROM 
+    "iso_2021"
+JOIN 
+    "iso_2022" ON "iso_2021"."firma_adi" = "iso_2022"."kurulus_adi"
+JOIN 
+    "iso_2023" ON "iso_2022"."kurulus_adi" = "iso_2023"."kurulus_adi"
+JOIN 
+    "iso_2024" ON "iso_2023"."kurulus_adi" = "iso_2024"."kurulus_adi"
+WHERE 
+    "iso_2021"."uretimden_satislar" IS NOT NULL
+    AND "iso_2022"."uretimden_satislar_net_tl" IS NOT NULL
+    AND "iso_2023"."uretimden_satislar_net_tl" IS NOT NULL
+    AND "iso_2024"."uretimden_satislar_net_tl" IS NOT NULL
+ORDER BY 
+    "2024 Revenue" DESC
+LIMIT 50;
+2025-08-14 17:54:24,107 - rag.retriever - INFO - SQL search completed in 10.46s, found 0 results
+2025-08-14 17:54:24,107 - rag.retriever - INFO - Performing vector similarity search...
+2025-08-14 17:54:24,564 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:54:24,617 - rag.retriever - INFO - No vector chunks found matching similarity threshold
+2025-08-14 17:54:24,617 - rag.retriever - INFO - Vector search found 0 chunks across 3 tables
+2025-08-14 17:54:24,618 - rag.retriever - INFO - Vector search completed in 0.51s, found 0 chunks
+2025-08-14 17:54:24,618 - rag.retriever - INFO - Performing SQL-based search...
+2025-08-14 17:54:29,684 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:54:29,705 - rag.retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi" AS company_name,
+    "yil" AS year,
+    "uretimden_satislar_net_tl" AS production_sales,
+    "net_satislar_tl" AS net_sales,
+    "brut_katma_deger_tl" AS gross_value_added,
+    "donem_kari_zarari_vergi_oncesi_tl" AS pre_tax_profit_loss,
+    "favok_tl" AS EBITDA
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+    AND "brut_katma_deger_tl" IS NOT NULL
+    AND "donem_kari_zarari_vergi_oncesi_tl" IS NOT NULL
+    AND "favok_tl" IS NOT NULL
+ORDER BY 
+    "yil" DESC, 
+    "net_satislar_tl" DESC
+LIMIT 50;
+2025-08-14 17:54:29,710 - rag.retriever - INFO - SQL search returned 50 rows
+2025-08-14 17:54:29,711 - rag.retriever - INFO - SQL search completed in 5.09s, found 50 results
+2025-08-14 17:54:32,346 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:54:32,416 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:54:32,416 - llm.conversation - INFO - Query intent: EMAIL_DRAFT (confidence: 0.700)
+2025-08-14 17:54:32,416 - llm.conversation - INFO - Reasoning: Detected email drafting keywords
+2025-08-14 17:54:38,600 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:54:41,467 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:54:41,531 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:54:41,531 - llm.conversation - INFO - Query intent: EMAIL_DRAFT (confidence: 0.700)
+2025-08-14 17:54:41,531 - llm.conversation - INFO - Reasoning: Detected email drafting keywords
+2025-08-14 17:54:54,157 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:55:15,149 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:55:15,214 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:55:15,215 - llm.conversation - INFO - Query intent: EMAIL_DRAFT (confidence: 0.700)
+2025-08-14 17:55:15,215 - llm.conversation - INFO - Reasoning: Detected email drafting keywords
+2025-08-14 17:55:23,811 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:55:27,540 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:55:27,604 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:55:27,604 - llm.conversation - INFO - Query intent: EMAIL_DRAFT (confidence: 0.700)
+2025-08-14 17:55:27,604 - llm.conversation - INFO - Reasoning: Detected email drafting keywords
+2025-08-14 17:55:38,701 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:55:43,212 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:55:43,275 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:55:43,275 - llm.conversation - INFO - Query intent: EMAIL_DRAFT (confidence: 0.700)
+2025-08-14 17:55:43,275 - llm.conversation - INFO - Reasoning: Detected email drafting keywords
+2025-08-14 17:55:53,857 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:55:57,855 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:55:57,954 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:55:57,954 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:55:57,955 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:56:01,228 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:05,531 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:05,595 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:56:05,595 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:56:05,596 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:56:08,807 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:11,674 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:11,739 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:56:11,739 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:56:11,740 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:56:12,493 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:16,283 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:16,347 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:56:16,347 - llm.conversation - INFO - Query intent: SQL_QUERY (confidence: 0.600)
+2025-08-14 17:56:16,347 - llm.conversation - INFO - Reasoning: Detected data analysis keywords
+2025-08-14 17:56:19,867 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:19,888 - retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    SUM(CAST("net_satislar_tl" AS BIGINT)) AS total_sales_last_quarter
+FROM 
+    "iso_2024"
+WHERE 
+    "yil" = 2024
+LIMIT 50;
+2025-08-14 17:56:19,892 - retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    SUM(CAST("net_satislar_tl" AS BIGINT)) AS total_sales_last_quarter
+FROM 
+    "iso_2024"
+WHERE 
+    "yil" = 2024
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:56:19,892 - retriever - ERROR - Query was: SELECT 
+    SUM(CAST("net_satislar_tl" AS BIGINT)) AS total_sales_last_quarter
+FROM 
+    "iso_2024"
+WHERE 
+    "yil" = 2024
+LIMIT 50;
+2025-08-14 17:56:22,734 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:22,798 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:56:22,798 - llm.conversation - INFO - Query intent: SQL_QUERY (confidence: 0.600)
+2025-08-14 17:56:22,798 - llm.conversation - INFO - Reasoning: Detected data analysis keywords
+2025-08-14 17:56:28,570 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:28,596 - retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "uretimden_satislar_net_tl" AS "Production Sales Revenue",
+    "net_satislar_tl" AS "Net Sales Revenue",
+    "yil" AS "Year"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+ORDER BY 
+    "uretimden_satislar_net_tl"::bigint DESC
+LIMIT 50;
+2025-08-14 17:56:28,598 - retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "uretimden_satislar_net_tl" AS "Production Sales Revenue",
+    "net_satislar_tl" AS "Net Sales Revenue",
+    "yil" AS "Year"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+ORDER BY 
+    "uretimden_satislar_net_tl"::bigint DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:56:28,598 - retriever - ERROR - Query was: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "uretimden_satislar_net_tl" AS "Production Sales Revenue",
+    "net_satislar_tl" AS "Net Sales Revenue",
+    "yil" AS "Year"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+ORDER BY 
+    "uretimden_satislar_net_tl"::bigint DESC
+LIMIT 50;
+2025-08-14 17:56:32,362 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:32,427 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:56:32,427 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:56:32,427 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:56:34,695 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:37,992 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:38,056 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:56:38,056 - llm.conversation - INFO - Query intent: SQL_QUERY (confidence: 0.600)
+2025-08-14 17:56:38,056 - llm.conversation - INFO - Reasoning: Detected data analysis keywords
+2025-08-14 17:56:41,790 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:41,834 - retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi" AS company_name,
+    "yil" AS year,
+    CAST("uretimden_satislar_net_tl" AS BIGINT) AS production_sales,
+    CAST("donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS profit_before_tax,
+    (CAST("donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) / NULLIF(CAST("uretimden_satislar_net_tl" AS BIGINT), 0)) * 100 AS profit_margin_percentage
+FROM 
+    "iso_2024"
+WHERE 
+    "yil" = 2024
+ORDER BY 
+    profit_margin_percentage DESC
+LIMIT 50;
+2025-08-14 17:56:41,835 - retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "kurulus_adi" AS company_name,
+    "yil" AS year,
+    CAST("uretimden_satislar_net_tl" AS BIGINT) AS production_sales,
+    CAST("donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS profit_before_tax,
+    (CAST("donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) / NULLIF(CAST("uretimden_satislar_net_tl" AS BIGINT), 0)) * 100 AS profit_margin_percentage
+FROM 
+    "iso_2024"
+WHERE 
+    "yil" = 2024
+ORDER BY 
+    profit_margin_percentage DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:56:41,835 - retriever - ERROR - Query was: SELECT 
+    "kurulus_adi" AS company_name,
+    "yil" AS year,
+    CAST("uretimden_satislar_net_tl" AS BIGINT) AS production_sales,
+    CAST("donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) AS profit_before_tax,
+    (CAST("donem_kari_zarari_vergi_oncesi_tl" AS BIGINT) / NULLIF(CAST("uretimden_satislar_net_tl" AS BIGINT), 0)) * 100 AS profit_margin_percentage
+FROM 
+    "iso_2024"
+WHERE 
+    "yil" = 2024
+ORDER BY 
+    profit_margin_percentage DESC
+LIMIT 50;
+2025-08-14 17:56:48,130 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:48,194 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:56:48,194 - llm.conversation - INFO - Query intent: SQL_QUERY (confidence: 0.600)
+2025-08-14 17:56:48,194 - llm.conversation - INFO - Reasoning: Detected data analysis keywords
+2025-08-14 17:56:50,382 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:50,404 - retriever - INFO - Generated SQL query for ISO 500 data: SELECT "firma_adi", CAST("net_satislar" AS BIGINT) AS revenue
+FROM "iso_2021"
+WHERE "net_satislar" != '-'
+ORDER BY revenue DESC
+LIMIT 10;
+2025-08-14 17:56:50,408 - retriever - INFO - SQL search returned 10 rows
+2025-08-14 17:56:58,574 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:56:58,577 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:56:58,577 - llm.conversation - INFO - Query intent: DOCUMENT_SEARCH (confidence: 0.600)
+2025-08-14 17:56:58,577 - llm.conversation - INFO - Reasoning: Detected document search keywords
+2025-08-14 17:56:58,985 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:56:59,133 - retriever - INFO - Vector search found 9 chunks:
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 1: File='2023-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=2, Similarity=0.245, Text='bağımsız denetim sırasında elde ettiğimiz bilgilerle tutarlıdır ve gerçeği yansıtmaktadır. 2) Görüşü...'
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 2: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.227, Text='SASA POLYESTER SANAYİ A.Ş. SPK SERİ II – 14.1 SAYILI TEBLİĞE İSTİNADEN HAZIRLANMIŞ
+1 OCAK – 31 ARALI...'
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 3: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.214, Text='1 Temmuz 2021 tarihinde de BIST Banka Dışı Likit 10 Endeksi kapsamına alınmıştır. SASA pay senetleri...'
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 4: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.195, Text='sermayesinde imtiyazlı pay bulunmamaktadır. Şirket paylarının her biri bir oya sahiptir. Şirket Esas...'
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 5: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=40, Similarity=0.153, Text='edilerek 14 Kasım 2022 tarih, 10703 sayılı Türkiye Ticaret Sicili Gazetesinde ilan edilmiştir. Yönet...'
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 6: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.143, Text='ve hayır işleri, suç ve yolsuzlukların ortadan kaldırılması bizim için çok önemlidir. İyi bir vatand...'
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 7: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=40, Similarity=0.142, Text='tescil edilerek 13 Mayıs 2022 tarih, 10577 sayılı Türkiye Ticaret Sicili Gazetesinde ilan edilmiştir...'
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 8: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=17, Similarity=0.135, Text='hayatı boyunca köklü firmalarda mali danışmanlık ve bağımsız denetim hizmetlerinde bulunmuştur. Ayte...'
+2025-08-14 17:56:59,133 - retriever - INFO -   Chunk 9: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.131, Text='belirlenmesine, geri alım programının ilk Genel Kurulda ortakların bilgisine sunulmasına karar veril...'
+2025-08-14 17:56:59,133 - retriever - INFO - Vector search found 9 chunks across 3 tables
+2025-08-14 17:57:02,568 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:02,591 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:02,592 - llm.conversation - INFO - Query intent: SQL_QUERY (confidence: 0.600)
+2025-08-14 17:57:02,592 - llm.conversation - INFO - Reasoning: Detected data analysis keywords
+2025-08-14 17:57:06,766 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:06,789 - retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "yil" AS "Year",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "brut_katma_deger_tl" AS "Gross Value Added (TL)",
+    "ihracat_bin" AS "Export (Bin)",
+    "genel_sira_no" AS "General Rank"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+    AND "brut_katma_deger_tl" IS NOT NULL
+    AND "ihracat_bin" IS NOT NULL
+ORDER BY 
+    "net_satislar_tl"::bigint DESC
+LIMIT 50;
+2025-08-14 17:57:06,791 - retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "yil" AS "Year",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "brut_katma_deger_tl" AS "Gross Value Added (TL)",
+    "ihracat_bin" AS "Export (Bin)",
+    "genel_sira_no" AS "General Rank"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+    AND "brut_katma_deger_tl" IS NOT NULL
+    AND "ihracat_bin" IS NOT NULL
+ORDER BY 
+    "net_satislar_tl"::bigint DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:57:06,791 - retriever - ERROR - Query was: SELECT 
+    "kurulus_adi" AS "Company Name",
+    "yil" AS "Year",
+    "uretimden_satislar_net_tl" AS "Production Sales (Net TL)",
+    "net_satislar_tl" AS "Net Sales (TL)",
+    "brut_katma_deger_tl" AS "Gross Value Added (TL)",
+    "ihracat_bin" AS "Export (Bin)",
+    "genel_sira_no" AS "General Rank"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL
+    AND "net_satislar_tl" IS NOT NULL
+    AND "brut_katma_deger_tl" IS NOT NULL
+    AND "ihracat_bin" IS NOT NULL
+ORDER BY 
+    "net_satislar_tl"::bigint DESC
+LIMIT 50;
+2025-08-14 17:57:10,965 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:10,986 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:10,987 - llm.conversation - INFO - Query intent: SQL_QUERY (confidence: 0.600)
+2025-08-14 17:57:10,987 - llm.conversation - INFO - Reasoning: Detected data analysis keywords
+2025-08-14 17:57:16,392 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:16,413 - retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi", 
+    "yil", 
+    "uretimden_satislar_net_tl", 
+    "net_satislar_tl", 
+    "donem_kari_zarari_vergi_oncesi_tl",
+    ("uretimden_satislar_net_tl"::bigint - "net_satislar_tl"::bigint) / NULLIF("net_satislar_tl"::bigint, 0) * 100 AS "profit_margin_percentage"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL 
+    AND "net_satislar_tl" IS NOT NULL 
+    AND "donem_kari_zarari_vergi_oncesi_tl" IS NOT NULL
+ORDER BY 
+    "profit_margin_percentage" DESC
+LIMIT 50;
+2025-08-14 17:57:16,414 - retriever - ERROR - Error executing generated SQL query: (psycopg2.errors.InvalidTextRepresentation) invalid input syntax for type bigint: "-"
+
+[SQL: SELECT 
+    "kurulus_adi", 
+    "yil", 
+    "uretimden_satislar_net_tl", 
+    "net_satislar_tl", 
+    "donem_kari_zarari_vergi_oncesi_tl",
+    ("uretimden_satislar_net_tl"::bigint - "net_satislar_tl"::bigint) / NULLIF("net_satislar_tl"::bigint, 0) * 100 AS "profit_margin_percentage"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL 
+    AND "net_satislar_tl" IS NOT NULL 
+    AND "donem_kari_zarari_vergi_oncesi_tl" IS NOT NULL
+ORDER BY 
+    "profit_margin_percentage" DESC
+LIMIT 50;]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+2025-08-14 17:57:16,414 - retriever - ERROR - Query was: SELECT 
+    "kurulus_adi", 
+    "yil", 
+    "uretimden_satislar_net_tl", 
+    "net_satislar_tl", 
+    "donem_kari_zarari_vergi_oncesi_tl",
+    ("uretimden_satislar_net_tl"::bigint - "net_satislar_tl"::bigint) / NULLIF("net_satislar_tl"::bigint, 0) * 100 AS "profit_margin_percentage"
+FROM 
+    "iso_2022"
+WHERE 
+    "uretimden_satislar_net_tl" IS NOT NULL 
+    AND "net_satislar_tl" IS NOT NULL 
+    AND "donem_kari_zarari_vergi_oncesi_tl" IS NOT NULL
+ORDER BY 
+    "profit_margin_percentage" DESC
+LIMIT 50;
+2025-08-14 17:57:20,078 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:20,151 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:20,151 - llm.conversation - INFO - Query intent: DOCUMENT_SEARCH (confidence: 0.600)
+2025-08-14 17:57:20,152 - llm.conversation - INFO - Reasoning: Detected document search keywords
+2025-08-14 17:57:20,601 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:57:20,636 - retriever - INFO - No vector chunks found matching similarity threshold
+2025-08-14 17:57:20,636 - retriever - INFO - Vector search found 0 chunks across 3 tables
+2025-08-14 17:57:23,916 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:23,974 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:23,975 - llm.conversation - INFO - Query intent: DOCUMENT_SEARCH (confidence: 0.600)
+2025-08-14 17:57:23,975 - llm.conversation - INFO - Reasoning: Detected document search keywords
+2025-08-14 17:57:24,687 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-08-14 17:57:24,727 - retriever - INFO - Vector search found 7 chunks:
+2025-08-14 17:57:24,727 - retriever - INFO -   Chunk 1: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.194, Text='SASA POLYESTER SANAYİ A.Ş. SPK SERİ II – 14.1 SAYILI TEBLİĞE İSTİNADEN HAZIRLANMIŞ
+1 OCAK – 31 ARALI...'
+2025-08-14 17:57:24,727 - retriever - INFO -   Chunk 2: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.174, Text='SASA POLYESTER SANAYİ A.Ş. SPK SERİ II – 14.1 SAYILI TEBLİĞE İSTİNADEN HAZIRLANMIŞ
+1 OCAK – 31 ARALI...'
+2025-08-14 17:57:24,727 - retriever - INFO -   Chunk 3: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.167, Text='devam etmektedir. Detaylı bilgi TEİAŞ Grup Müdürlüğü’nden temin edilebilmektedir. Şirket tarafından ...'
+2025-08-14 17:57:24,727 - retriever - INFO -   Chunk 4: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.151, Text='taleplerini karşılayarak SASA’nın endüstrideki tecrübesini iş hayatına hazırlanan gençlerimize aktar...'
+2025-08-14 17:57:24,727 - retriever - INFO -   Chunk 5: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=10, Similarity=0.117, Text='naylon) iplik üretimi, daha sonra dokuma ve örme işlemleri ile kumaş haline getirilmektedir. Tekstil...'
+2025-08-14 17:57:24,727 - retriever - INFO -   Chunk 6: File='2024-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=1, Similarity=0.058, Text='üniversite eğitimi sırasında başladığı halı ticaretine okul bittikten sonra da devam etmiştir. Bugün...'
+2025-08-14 17:57:24,727 - retriever - INFO -   Chunk 7: File='2022-Yonetim-Kurulu-Faaliyet-Raporu sasa.pdf', Page=41, Similarity=0.044, Text='yeni pay sahibi olmuştur. Böylece sahip olunan SASA payları 14.993.302 lota ulaşmıştır. Şirket 21 Ek...'
+2025-08-14 17:57:24,727 - retriever - INFO - Vector search found 7 chunks across 3 tables
+2025-08-14 17:57:27,451 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:27,515 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:27,515 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:57:27,515 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:57:28,680 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:31,652 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:31,715 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:31,716 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:57:31,716 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:57:34,619 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:37,998 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:38,064 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:38,064 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:57:38,064 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:57:40,461 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:43,016 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:43,018 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:43,019 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:57:43,019 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:57:46,089 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:52,516 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:52,586 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:52,587 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:57:52,587 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:57:53,563 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:57,046 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:57,049 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:57:57,049 - llm.conversation - INFO - Query intent: SQL_QUERY (confidence: 0.600)
+2025-08-14 17:57:57,049 - llm.conversation - INFO - Reasoning: Detected data analysis keywords
+2025-08-14 17:57:59,707 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:57:59,774 - retriever - INFO - Generated SQL query for ISO 500 data: SELECT 
+    "kurulus_adi", 
+    "uretimden_satislar_net_tl" AS "sales_figure"
+FROM 
+    "iso_2024"
+WHERE 
+    "yil" = 2024.0
+ORDER BY 
+    "uretimden_satislar_net_tl" DESC
+LIMIT 50;
+2025-08-14 17:57:59,777 - retriever - INFO - SQL search returned 50 rows
+2025-08-14 17:58:04,213 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:58:04,235 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:58:04,236 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:58:04,236 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:58:05,851 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:58:10,115 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:58:10,135 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:58:10,135 - llm.conversation - INFO - Query intent: GENERAL_CHAT (confidence: 0.500)
+2025-08-14 17:58:10,135 - llm.conversation - INFO - Reasoning: No specific intent detected, defaulting to general chat
+2025-08-14 17:58:12,097 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:58:16,604 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:58:16,624 - llm.conversation - WARNING - Failed to parse intent analysis: Expecting value: line 1 column 1 (char 0)
+2025-08-14 17:58:16,625 - llm.conversation - INFO - Query intent: EMAIL_DRAFT (confidence: 0.700)
+2025-08-14 17:58:16,625 - llm.conversation - INFO - Reasoning: Detected email drafting keywords
+2025-08-14 17:58:24,488 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-14 17:58:25,567 - llm.conversation - INFO - ConversationalAgent closed

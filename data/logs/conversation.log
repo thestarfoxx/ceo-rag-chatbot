@@ -1,0 +1,349 @@
+2025-09-01 14:05:43,628 - retriever - INFO - HybridRetriever initialized with LLM table selection
+2025-09-01 14:05:43,628 - __main__ - INFO - ConversationalRAGSystem initialized successfully
+2025-09-01 14:06:18,765 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:06:18,795 - __main__ - INFO - Query classified as: document_search
+2025-09-01 14:06:18,796 - retriever - INFO - Processing query as type: vector
+2025-09-01 14:06:21,856 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 14:06:21,900 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 14:06:23,581 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:06:23,587 - retriever - INFO - LLM selected table: vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa for query: '2022 Faaliyet raporuna göre Yönetim Kurulu kaç ker...'
+2025-09-01 14:06:23,594 - retriever - INFO - Table vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa: 139 total rows, 139 with embeddings
+2025-09-01 14:06:23,618 - retriever - INFO - Found chunk with similarity: 0.5978
+2025-09-01 14:06:23,619 - retriever - INFO - Found chunk with similarity: 0.4425
+2025-09-01 14:06:23,619 - retriever - INFO - Found chunk with similarity: 0.4387
+2025-09-01 14:06:23,619 - retriever - INFO - Found chunk with similarity: 0.4343
+2025-09-01 14:06:23,619 - retriever - INFO - Found chunk with similarity: 0.3765
+2025-09-01 14:06:23,619 - retriever - INFO - Found 5 total chunks, 0 above similarity threshold 0.750
+2025-09-01 14:06:23,619 - retriever - WARNING - No chunks above threshold, returning top 5 results
+2025-09-01 14:06:58,495 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:06:58,497 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:06:58,497 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:06:58,497 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:06:59,591 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:06:59,604 - retriever - INFO - LLM selected table: iso_2022 for query: '2022 ISO belgesine göre en çok kar eden 10 şirket ...'
+2025-09-01 14:07:01,976 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:02,029 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, donem_kari_zarari_vergi_oncesi_tl 
+FROM "iso_2022" 
+WHERE yil = 2022
+ORDER BY NU...
+2025-09-01 14:07:02,034 - retriever - INFO - SQL search in iso_2022 returned 10 rows
+2025-09-01 14:07:31,877 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:31,880 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:07:31,880 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:07:31,880 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:07:32,799 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:32,807 - retriever - INFO - LLM selected table: iso_2022 for query: '----------------------------------...'
+2025-09-01 14:07:33,925 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:33,978 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, donem_kari_zarari_vergi_oncesi_tl 
+FROM "iso_2022" 
+ORDER BY NULLIF(regexp_repla...
+2025-09-01 14:07:33,982 - retriever - INFO - SQL search in iso_2022 returned 10 rows
+2025-09-01 14:07:34,716 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:34,770 - __main__ - INFO - Query classified as: general_chat
+2025-09-01 14:07:37,146 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:38,328 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:38,357 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:07:38,357 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:07:38,358 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:07:39,148 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:39,197 - retriever - INFO - LLM selected table: iso_2022 for query: 'Star Rafineri A.Ş. | 31820364286...'
+2025-09-01 14:07:41,401 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:41,408 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, donem_kari_zarari_vergi_oncesi_tl 
+FROM "iso_2022" 
+WHERE kurulus_adi = 'Star Ra...
+2025-09-01 14:07:41,410 - retriever - INFO - SQL search in iso_2022 returned 1 rows
+2025-09-01 14:07:43,585 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:43,633 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:07:43,634 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:07:43,634 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:07:44,291 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:44,297 - retriever - INFO - LLM selected table: iso_2022 for query: 'Ereğli Demir ve Çeli | 28343091473...'
+2025-09-01 14:07:45,501 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:45,553 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, net_satislar_tl 
+FROM "iso_2022" 
+WHERE kurulus_adi ILIKE '%Ereğli Demir ve Çeli...
+2025-09-01 14:07:45,558 - retriever - INFO - SQL search in iso_2022 returned 1 rows
+2025-09-01 14:07:46,313 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:46,360 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:07:46,361 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:07:46,361 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:07:47,140 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:47,190 - retriever - INFO - LLM selected table: iso_2022 for query: 'Eti Bakır A.Ş. | 20156262003...'
+2025-09-01 14:07:48,260 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:48,310 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, net_satislar_tl 
+FROM "iso_2022" 
+WHERE kurulus_adi = 'Eti Bakır A.Ş.' 
+ORDER BY...
+2025-09-01 14:07:48,312 - retriever - INFO - SQL search in iso_2022 returned 1 rows
+2025-09-01 14:07:48,978 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:49,025 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:07:49,025 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:07:49,026 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:07:49,685 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:07:49,691 - retriever - INFO - LLM selected table: iso_2022 for query: 'İskenderun Demir ve  | 17345555630...'
+2025-09-01 14:07:53,799 - retriever - INFO - HybridRetriever initialized with LLM table selection
+2025-09-01 14:07:53,799 - __main__ - INFO - ConversationalRAGSystem initialized successfully
+2025-09-01 14:08:07,924 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:08:07,958 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:08:07,958 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:08:07,976 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:08:08,742 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:08:08,794 - retriever - INFO - LLM selected table: iso_2022 for query: '2022 ISO belgesine göre en çok kar eden 10 şirket ...'
+2025-09-01 14:08:09,833 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:08:09,883 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, donem_kari_zarari_vergi_oncesi_tl 
+FROM "iso_2022" 
+WHERE yil = 2022
+ORDER BY NU...
+2025-09-01 14:08:09,888 - retriever - INFO - SQL search in iso_2022 returned 10 rows
+2025-09-01 14:08:49,293 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:08:49,297 - __main__ - INFO - Query classified as: email_draft
+2025-09-01 14:08:55,544 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:09:54,371 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:09:54,377 - __main__ - INFO - Query classified as: document_search
+2025-09-01 14:09:54,378 - retriever - INFO - Processing query as type: vector
+2025-09-01 14:09:55,444 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 14:09:55,451 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 14:09:56,057 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:09:56,105 - retriever - INFO - LLM selected table: vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa for query: 'ISO 2024 dosyasına göre hangi şirkete yatırım yapm...'
+2025-09-01 14:09:56,107 - retriever - INFO - Table vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa: 336 total rows, 336 with embeddings
+2025-09-01 14:09:56,115 - retriever - INFO - Found chunk with similarity: 0.4541
+2025-09-01 14:09:56,115 - retriever - INFO - Found chunk with similarity: 0.4541
+2025-09-01 14:09:56,115 - retriever - INFO - Found chunk with similarity: 0.4517
+2025-09-01 14:09:56,115 - retriever - INFO - Found chunk with similarity: 0.4516
+2025-09-01 14:09:56,115 - retriever - INFO - Found chunk with similarity: 0.4242
+2025-09-01 14:09:56,115 - retriever - INFO - Found chunk with similarity: 0.4238
+2025-09-01 14:09:56,115 - retriever - INFO - Found chunk with similarity: 0.4159
+2025-09-01 14:09:56,115 - retriever - INFO - Found chunk with similarity: 0.4159
+2025-09-01 14:09:56,116 - retriever - INFO - Found chunk with similarity: 0.4110
+2025-09-01 14:09:56,116 - retriever - INFO - Found chunk with similarity: 0.4110
+2025-09-01 14:09:56,116 - retriever - INFO - Found 10 total chunks, 0 above similarity threshold 0.750
+2025-09-01 14:09:56,116 - retriever - WARNING - No chunks above threshold, returning top 5 results
+2025-09-01 14:10:20,224 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:10:20,227 - __main__ - INFO - Query classified as: document_search
+2025-09-01 14:10:20,227 - retriever - INFO - Processing query as type: vector
+2025-09-01 14:10:20,551 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 14:10:20,603 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 14:10:21,262 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:10:21,313 - retriever - INFO - LLM selected table: vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa for query: 'ISO 2024'e göre hangi şirkete yatırım yapmam gerek...'
+2025-09-01 14:10:21,320 - retriever - INFO - Table vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa: 336 total rows, 336 with embeddings
+2025-09-01 14:10:21,344 - retriever - INFO - Found chunk with similarity: 0.4197
+2025-09-01 14:10:21,344 - retriever - INFO - Found chunk with similarity: 0.4197
+2025-09-01 14:10:21,344 - retriever - INFO - Found 2 total chunks, 0 above similarity threshold 0.750
+2025-09-01 14:10:21,344 - retriever - WARNING - No chunks above threshold, returning top 2 results
+2025-09-01 14:11:03,922 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:11:03,925 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:11:03,925 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:11:03,925 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:11:04,974 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:11:04,980 - retriever - INFO - LLM selected table: iso_2022 for query: 'ISO 2022'ye basit bir veri analizi uygulayabilir m...'
+2025-09-01 14:11:06,202 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:11:06,250 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, donem_kari_zarari_vergi_oncesi_tl 
+FROM "iso_2022" 
+ORDER BY NULLIF(regexp_repla...
+2025-09-01 14:11:06,255 - retriever - INFO - SQL search in iso_2022 returned 50 rows
+2025-09-01 14:13:14,546 - __main__ - INFO - ConversationalRAGSystem closed
+2025-09-01 14:16:20,915 - retriever - INFO - HybridRetriever initialized with LLM table selection
+2025-09-01 14:16:20,915 - __main__ - INFO - ConversationalRAGSystem initialized with ResponseAnalyzer
+2025-09-01 14:16:48,735 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:16:48,746 - __main__ - INFO - Query classified as: document_search
+2025-09-01 14:16:48,746 - retriever - INFO - Processing query as type: vector
+2025-09-01 14:16:49,144 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 14:16:49,186 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 14:16:49,964 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:16:50,014 - retriever - INFO - LLM selected table: vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa for query: '2022 faaliyet raporunu özetleyebilir misin?...'
+2025-09-01 14:16:50,021 - retriever - INFO - Table vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa: 139 total rows, 139 with embeddings
+2025-09-01 14:16:50,033 - retriever - INFO - Found 0 total chunks, 0 above similarity threshold 0.750
+2025-09-01 14:16:50,034 - retriever - INFO - Vector search in vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa found 0 chunks
+2025-09-01 14:16:50,055 - __main__ - ERROR - Error processing query: 'ConversationalRAGSystem' object has no attribute '_should_attempt_hybrid_search'
+2025-09-01 14:20:38,693 - retriever - INFO - HybridRetriever initialized with LLM table selection
+2025-09-01 14:20:38,693 - retriever - INFO - Updated similarity threshold to: 0.15
+2025-09-01 14:20:38,693 - retriever - INFO - Updated max vector results to: 10
+2025-09-01 14:20:38,693 - retriever - INFO - Updated max SQL results to: 50
+2025-09-01 14:20:38,693 - __main__ - INFO - ConversationalRAGSystem initialized with ResponseAnalyzer
+2025-09-01 14:20:46,276 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:20:46,298 - __main__ - INFO - Query classified as: document_search
+2025-09-01 14:20:46,298 - retriever - INFO - Processing query as type: vector
+2025-09-01 14:20:47,995 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 14:20:48,082 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 14:20:49,031 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:20:49,037 - retriever - INFO - LLM selected table: vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa for query: '2022 faaliyet raporunu özetleyebilir misin?...'
+2025-09-01 14:20:49,044 - retriever - INFO - Table vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa: 139 total rows, 139 with embeddings
+2025-09-01 14:20:49,064 - retriever - INFO - Found 0 total chunks, 0 above similarity threshold 0.850
+2025-09-01 14:20:49,065 - retriever - INFO - Vector search in vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa found 0 chunks
+2025-09-01 14:20:49,105 - __main__ - ERROR - Error processing query: 'ConversationalRAGSystem' object has no attribute '_should_attempt_hybrid_search'
+2025-09-01 14:24:34,116 - retriever - INFO - HybridRetriever initialized with LLM table selection
+2025-09-01 14:24:34,116 - __main__ - INFO - ConversationalRAGSystem initialized successfully
+2025-09-01 14:25:09,797 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:25:09,824 - __main__ - INFO - Query classified as: document_search
+2025-09-01 14:25:09,824 - retriever - INFO - Processing query as type: vector
+2025-09-01 14:25:10,296 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 14:25:10,334 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 14:25:11,319 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:25:11,366 - retriever - INFO - LLM selected table: vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa for query: '2022 Faaliyet raporuna göre şirketin finansal duru...'
+2025-09-01 14:25:11,374 - retriever - INFO - Table vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa: 139 total rows, 139 with embeddings
+2025-09-01 14:25:11,403 - retriever - INFO - Found chunk with similarity: 0.5016
+2025-09-01 14:25:11,403 - retriever - INFO - Found chunk with similarity: 0.4724
+2025-09-01 14:25:11,403 - retriever - INFO - Found chunk with similarity: 0.4384
+2025-09-01 14:25:11,404 - retriever - INFO - Found chunk with similarity: 0.4150
+2025-09-01 14:25:11,404 - retriever - INFO - Found chunk with similarity: 0.4050
+2025-09-01 14:25:11,404 - retriever - INFO - Found chunk with similarity: 0.4040
+2025-09-01 14:25:11,404 - retriever - INFO - Found chunk with similarity: 0.3657
+2025-09-01 14:25:11,405 - retriever - INFO - Found chunk with similarity: 0.3374
+2025-09-01 14:25:11,405 - retriever - INFO - Found 8 total chunks, 0 above similarity threshold 0.750
+2025-09-01 14:25:11,405 - retriever - WARNING - No chunks above threshold, returning top 5 results
+2025-09-01 14:25:37,432 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:25:37,434 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:25:37,434 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:25:37,435 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:25:38,251 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:25:38,254 - retriever - INFO - LLM selected table: iso_2024 for query: '2024 ISO belgesine göre en çok gelir elde eden şir...'
+2025-09-01 14:25:40,093 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:25:40,142 - retriever - INFO - Generated SQL query for table iso_2024: SELECT kurulus_adi, net_satislar_tl 
+FROM "iso_2024" 
+ORDER BY NULLIF(regexp_replace(net_satislar_tl...
+2025-09-01 14:25:40,147 - retriever - INFO - SQL search in iso_2024 returned 50 rows
+2025-09-01 14:26:02,417 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:26:02,420 - __main__ - INFO - Query classified as: help
+2025-09-01 14:26:12,145 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:26:12,148 - __main__ - INFO - Query classified as: general_chat
+2025-09-01 14:26:13,169 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:27:03,243 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:27:03,249 - __main__ - INFO - Query classified as: email_draft
+2025-09-01 14:27:09,183 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:28:54,004 - __main__ - INFO - ConversationalRAGSystem closed
+2025-09-01 14:28:56,867 - retriever - INFO - HybridRetriever initialized with LLM table selection
+2025-09-01 14:28:56,867 - retriever - INFO - Updated similarity threshold to: 0.15
+2025-09-01 14:28:56,867 - retriever - INFO - Updated max vector results to: 10
+2025-09-01 14:28:56,867 - retriever - INFO - Updated max SQL results to: 50
+2025-09-01 14:28:56,867 - __main__ - INFO - ConversationalRAGSystem initialized with ResponseAnalyzer
+2025-09-01 14:29:17,843 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:29:17,874 - __main__ - INFO - Query classified as: document_search
+2025-09-01 14:29:17,875 - retriever - INFO - Processing query as type: vector
+2025-09-01 14:29:18,163 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 14:29:18,202 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 14:29:18,919 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:29:18,936 - retriever - INFO - LLM selected table: vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa for query: '2022 Faaliyet raporuna göre şirketin finansal duru...'
+2025-09-01 14:29:18,942 - retriever - INFO - Table vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa: 139 total rows, 139 with embeddings
+2025-09-01 14:29:18,961 - retriever - INFO - Found chunk with similarity: 0.4686
+2025-09-01 14:29:18,962 - retriever - INFO - Found chunk with similarity: 0.3418
+2025-09-01 14:29:18,962 - retriever - INFO - Found chunk with similarity: 0.3397
+2025-09-01 14:29:18,962 - retriever - INFO - Found 3 total chunks, 0 above similarity threshold 0.850
+2025-09-01 14:29:18,962 - retriever - WARNING - No chunks above threshold, returning top 3 results
+2025-09-01 14:29:29,203 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:30:16,687 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:30:16,694 - __main__ - INFO - Query classified as: data_query
+2025-09-01 14:30:16,694 - retriever - INFO - Processing query as type: sql
+2025-09-01 14:30:16,694 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 14:30:17,503 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:30:17,510 - retriever - INFO - LLM selected table: iso_2022 for query: '2022 ISO'ya göre en çok karı olan şirketler hangil...'
+2025-09-01 14:30:20,009 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:30:20,060 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, donem_kari_zarari_vergi_oncesi_tl 
+FROM "iso_2022" 
+ORDER BY NULLIF(regexp_repla...
+2025-09-01 14:30:20,062 - retriever - INFO - SQL search in iso_2022 returned 50 rows
+2025-09-01 14:30:30,198 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:32:00,513 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 14:32:00,514 - __main__ - INFO - Query classified as: email_draft
+2025-09-01 14:32:07,011 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:06:54,092 - __main__ - INFO - ConversationalRAGSystem closed
+2025-09-01 15:08:37,227 - retriever - INFO - HybridRetriever initialized with LLM table selection
+2025-09-01 15:08:37,228 - retriever - INFO - Updated similarity threshold to: 0.15
+2025-09-01 15:08:37,228 - retriever - INFO - Updated max vector results to: 10
+2025-09-01 15:08:37,228 - retriever - INFO - Updated max SQL results to: 50
+2025-09-01 15:08:37,228 - __main__ - INFO - ConversationalRAGSystem initialized with ResponseAnalyzer
+2025-09-01 15:10:03,776 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:10:03,801 - __main__ - INFO - Query classified as: data_query
+2025-09-01 15:10:03,801 - retriever - INFO - Processing query as type: sql
+2025-09-01 15:10:03,815 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 15:10:04,560 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:10:04,565 - retriever - INFO - LLM selected table: iso_2022 for query: 'ISO 2022'ye göre ilk üç sırada hangi şirketler var...'
+2025-09-01 15:10:05,924 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:10:05,969 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, genel_sira_no 
+FROM "iso_2022" 
+ORDER BY genel_sira_no ASC NULLS LAST 
+LIMIT 3;...
+2025-09-01 15:10:05,970 - retriever - INFO - SQL search in iso_2022 returned 3 rows
+2025-09-01 15:10:17,929 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:11:04,272 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:11:04,277 - __main__ - INFO - Query classified as: data_query
+2025-09-01 15:11:04,277 - retriever - INFO - Processing query as type: sql
+2025-09-01 15:11:04,278 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 15:11:04,835 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:11:04,882 - retriever - INFO - LLM selected table: iso_2022 for query: 'ISO 2022'de son üç sırada hangi şirketler var?...'
+2025-09-01 15:11:07,344 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:11:07,393 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, genel_sira_no 
+FROM "iso_2022" 
+ORDER BY genel_sira_no DESC NULLS LAST 
+LIMIT 3;...
+2025-09-01 15:11:07,395 - retriever - INFO - SQL search in iso_2022 returned 3 rows
+2025-09-01 15:11:16,343 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:15:14,252 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:15:14,310 - __main__ - INFO - Query classified as: document_search
+2025-09-01 15:15:14,310 - retriever - INFO - Processing query as type: vector
+2025-09-01 15:15:15,020 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 15:15:15,033 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 15:15:16,158 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:15:16,209 - retriever - INFO - LLM selected table: vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa for query: '2022 Faaliyet raporuna göre nerelere yatırım yapıl...'
+2025-09-01 15:15:16,212 - retriever - INFO - Table vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa: 139 total rows, 139 with embeddings
+2025-09-01 15:15:16,220 - retriever - INFO - Found 0 total chunks, 0 above similarity threshold 0.850
+2025-09-01 15:15:16,221 - retriever - INFO - Vector search in vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa found 0 chunks
+2025-09-01 15:15:17,117 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:15:17,121 - retriever - INFO - Query type determined: vector for query: '2022 Faaliyet raporuna göre nerelere yatırım yapıl...'
+2025-09-01 15:15:17,122 - retriever - INFO - Processing query as type: vector
+2025-09-01 15:15:17,435 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 15:15:17,442 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 15:15:18,154 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:15:18,202 - retriever - INFO - LLM selected table: vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa for query: '2022 Faaliyet raporuna göre nerelere yatırım yapıl...'
+2025-09-01 15:15:18,208 - retriever - INFO - Table vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa: 139 total rows, 139 with embeddings
+2025-09-01 15:15:18,216 - retriever - INFO - Found 0 total chunks, 0 above similarity threshold 0.850
+2025-09-01 15:15:18,217 - retriever - INFO - Vector search in vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa found 0 chunks
+2025-09-01 15:16:00,164 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:16:00,225 - __main__ - INFO - Query classified as: data_query
+2025-09-01 15:16:00,225 - retriever - INFO - Processing query as type: sql
+2025-09-01 15:16:00,226 - retriever - INFO - Found 4 tables for sql search with prefixes ['iso_']
+2025-09-01 15:16:00,854 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:16:00,902 - retriever - INFO - LLM selected table: iso_2022 for query: '2022'de firmanın satışları ve hasılatı nedir?...'
+2025-09-01 15:16:02,898 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:16:02,944 - retriever - INFO - Generated SQL query for table iso_2022: SELECT kurulus_adi, 
+       NULLIF(regexp_replace(uretimden_satislar_net_tl, '[^0-9]', '', 'g'), '')...
+2025-09-01 15:16:02,946 - retriever - INFO - SQL search in iso_2022 returned 50 rows
+2025-09-01 15:16:12,720 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:17:07,822 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:17:07,827 - __main__ - INFO - Query classified as: document_search
+2025-09-01 15:17:07,827 - retriever - INFO - Processing query as type: vector
+2025-09-01 15:17:08,115 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 15:17:08,121 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 15:17:09,025 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:17:09,076 - retriever - INFO - LLM selected table: vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa for query: '2022 Sasa faaliyet raporuna firmanın satış ve hası...'
+2025-09-01 15:17:09,079 - retriever - INFO - Table vectors_doc_2022_yonetim_kurulu_faaliyet_raporu_sasa: 139 total rows, 139 with embeddings
+2025-09-01 15:17:09,089 - retriever - INFO - Found chunk with similarity: 0.5628
+2025-09-01 15:17:09,089 - retriever - INFO - Found chunk with similarity: 0.3585
+2025-09-01 15:17:09,089 - retriever - INFO - Found 2 total chunks, 0 above similarity threshold 0.850
+2025-09-01 15:17:09,090 - retriever - WARNING - No chunks above threshold, returning top 2 results
+2025-09-01 15:17:30,491 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:23:15,158 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:23:15,162 - __main__ - INFO - Query classified as: document_search
+2025-09-01 15:23:15,162 - retriever - INFO - Processing query as type: vector
+2025-09-01 15:23:15,875 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 15:23:15,882 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 15:23:16,418 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:23:16,465 - retriever - INFO - LLM selected table: vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa for query: 'Sanat tarihinin en önemli dönüm noktaları nelerdir...'
+2025-09-01 15:23:16,472 - retriever - INFO - Table vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa: 336 total rows, 336 with embeddings
+2025-09-01 15:23:16,492 - retriever - INFO - Found 0 total chunks, 0 above similarity threshold 0.850
+2025-09-01 15:23:16,493 - retriever - INFO - Vector search in vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa found 0 chunks
+2025-09-01 15:23:16,997 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:23:17,002 - retriever - INFO - Query type determined: vector for query: 'Sanat tarihinin en önemli dönüm noktaları nelerdir...'
+2025-09-01 15:23:17,002 - retriever - INFO - Processing query as type: vector
+2025-09-01 15:23:17,683 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-01 15:23:17,689 - retriever - INFO - Found 3 tables for vector search with prefixes ['vectors_']
+2025-09-01 15:23:18,245 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:23:18,292 - retriever - INFO - LLM selected table: vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa for query: 'Sanat tarihinin en önemli dönüm noktaları nelerdir...'
+2025-09-01 15:23:18,295 - retriever - INFO - Table vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa: 336 total rows, 336 with embeddings
+2025-09-01 15:23:18,302 - retriever - INFO - Found 0 total chunks, 0 above similarity threshold 0.850
+2025-09-01 15:23:18,302 - retriever - INFO - Vector search in vectors_doc_2024_yonetim_kurulu_faaliyet_raporu_sasa found 0 chunks
+2025-09-01 15:23:34,167 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:23:34,171 - __main__ - INFO - Query classified as: general_chat
+2025-09-01 15:23:34,877 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:28:55,562 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-09-01 15:28:55,618 - __main__ - INFO - Query classified as: email_draft
+2025-09-01 15:28:59,352 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"

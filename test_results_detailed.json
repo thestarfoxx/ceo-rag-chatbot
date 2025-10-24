@@ -1,0 +1,502 @@
+[
+  {
+    "test_name": "Vector Search",
+    "query": "financial performance and revenue growth",
+    "success": true,
+    "response_time": 1.369948387145996,
+    "timestamp": "2025-08-14T17:53:37.209318",
+    "details": {
+      "result_count": 2,
+      "has_results": true
+    }
+  },
+  {
+    "test_name": "Vector Search",
+    "query": "market analysis and competitive positioning",
+    "success": true,
+    "response_time": 1.1444242000579834,
+    "timestamp": "2025-08-14T17:53:38.353876",
+    "details": {
+      "result_count": 1,
+      "has_results": true
+    }
+  },
+  {
+    "test_name": "Vector Search",
+    "query": "operational efficiency and cost reduction",
+    "success": true,
+    "response_time": 0.7088382244110107,
+    "timestamp": "2025-08-14T17:53:39.062863",
+    "details": {
+      "result_count": 9,
+      "has_results": true
+    }
+  },
+  {
+    "test_name": "Vector Search",
+    "query": "strategic planning and business objectives",
+    "success": true,
+    "response_time": 0.7969043254852295,
+    "timestamp": "2025-08-14T17:53:39.859878",
+    "details": {
+      "result_count": 5,
+      "has_results": true
+    }
+  },
+  {
+    "test_name": "Vector Search",
+    "query": "risk management and compliance",
+    "success": false,
+    "response_time": 1.1696159839630127,
+    "timestamp": "2025-08-14T17:53:41.029564",
+    "details": {
+      "result_count": 0,
+      "has_results": false
+    }
+  },
+  {
+    "test_name": "SQL Search",
+    "query": "Show me the total sales revenue",
+    "success": false,
+    "response_time": 6.7137978076934814,
+    "timestamp": "2025-08-14T17:53:47.743441",
+    "details": {
+      "result_count": 0,
+      "has_results": false
+    }
+  },
+  {
+    "test_name": "SQL Search",
+    "query": "What are the top performing products?",
+    "success": false,
+    "response_time": 4.487241983413696,
+    "timestamp": "2025-08-14T17:53:52.230809",
+    "details": {
+      "result_count": 0,
+      "has_results": false
+    }
+  },
+  {
+    "test_name": "SQL Search",
+    "query": "Calculate average profit margins by category",
+    "success": true,
+    "response_time": 4.0014166831970215,
+    "timestamp": "2025-08-14T17:53:56.232505",
+    "details": {
+      "result_count": 1,
+      "has_results": true
+    }
+  },
+  {
+    "test_name": "SQL Search",
+    "query": "Find records with highest values",
+    "success": false,
+    "response_time": 3.3708713054656982,
+    "timestamp": "2025-08-14T17:53:59.603567",
+    "details": {
+      "result_count": 0,
+      "has_results": false
+    }
+  },
+  {
+    "test_name": "SQL Search",
+    "query": "Show recent financial data",
+    "success": false,
+    "response_time": 3.7972846031188965,
+    "timestamp": "2025-08-14T17:54:03.400972",
+    "details": {
+      "result_count": 0,
+      "has_results": false
+    }
+  },
+  {
+    "test_name": "Hybrid Search",
+    "query": "financial performance metrics and strategic analysis",
+    "success": false,
+    "response_time": 9.86981725692749,
+    "timestamp": "2025-08-14T17:54:13.271066",
+    "details": {
+      "vector_count": 0,
+      "sql_count": 0,
+      "total_results": 0,
+      "metadata": {
+        "total_retrieval_time": 9.869792222976685,
+        "vector_search_enabled": true,
+        "sql_search_enabled": true,
+        "vector_results_count": 0,
+        "sql_results_count": 0,
+        "similarity_threshold": 0.25,
+        "max_vector_results": 10,
+        "max_sql_results": 50
+      }
+    }
+  },
+  {
+    "test_name": "Hybrid Search",
+    "query": "revenue growth trends and market positioning",
+    "success": false,
+    "response_time": 10.836609125137329,
+    "timestamp": "2025-08-14T17:54:24.107897",
+    "details": {
+      "vector_count": 0,
+      "sql_count": 0,
+      "total_results": 0,
+      "metadata": {
+        "total_retrieval_time": 10.836579084396362,
+        "vector_search_enabled": true,
+        "sql_search_enabled": true,
+        "vector_results_count": 0,
+        "sql_results_count": 0,
+        "similarity_threshold": 0.25,
+        "max_vector_results": 10,
+        "max_sql_results": 50
+      }
+    }
+  },
+  {
+    "test_name": "Hybrid Search",
+    "query": "operational costs and efficiency improvements",
+    "success": true,
+    "response_time": 5.603487014770508,
+    "timestamp": "2025-08-14T17:54:29.711611",
+    "details": {
+      "vector_count": 0,
+      "sql_count": 50,
+      "total_results": 50,
+      "metadata": {
+        "total_retrieval_time": 5.603461742401123,
+        "vector_search_enabled": true,
+        "sql_search_enabled": true,
+        "vector_results_count": 0,
+        "sql_results_count": 50,
+        "similarity_threshold": 0.25,
+        "max_vector_results": 10,
+        "max_sql_results": 50
+      }
+    }
+  },
+  {
+    "test_name": "Email Drafting",
+    "query": "Draft an email to John Smith about the quarterly financial review meeting",
+    "success": true,
+    "response_time": 8.991997480392456,
+    "timestamp": "2025-08-14T17:54:38.704007",
+    "details": {
+      "intent": "EMAIL_DRAFT",
+      "success": true,
+      "has_email_data": true
+    }
+  },
+  {
+    "test_name": "Email Drafting",
+    "query": "Write a professional email to the board about budget concerns and cost optimization",
+    "success": true,
+    "response_time": 15.475210189819336,
+    "timestamp": "2025-08-14T17:54:54.179463",
+    "details": {
+      "intent": "EMAIL_DRAFT",
+      "success": true,
+      "has_email_data": true
+    }
+  },
+  {
+    "test_name": "Email Drafting",
+    "query": "Compose an email to Sarah Johnson requesting the Q3 sales performance report",
+    "success": true,
+    "response_time": 29.700674057006836,
+    "timestamp": "2025-08-14T17:55:23.880348",
+    "details": {
+      "intent": "EMAIL_DRAFT",
+      "success": true,
+      "has_email_data": true
+    }
+  },
+  {
+    "test_name": "Email Drafting",
+    "query": "Create a friendly email to the team announcing the successful product launch",
+    "success": true,
+    "response_time": 14.884008884429932,
+    "timestamp": "2025-08-14T17:55:38.764536",
+    "details": {
+      "intent": "EMAIL_DRAFT",
+      "success": true,
+      "has_email_data": true
+    }
+  },
+  {
+    "test_name": "Email Drafting",
+    "query": "Draft a formal email to investors about our expansion plans",
+    "success": true,
+    "response_time": 15.116559267044067,
+    "timestamp": "2025-08-14T17:55:53.881249",
+    "details": {
+      "intent": "EMAIL_DRAFT",
+      "success": true,
+      "has_email_data": true
+    }
+  },
+  {
+    "test_name": "Email Analysis",
+    "query": "Analyze this email: Subject: URGENT - Server Outage. From: IT Team. The main server is down and requires immediate attention. Expected downtime 2-4 hours.",
+    "success": false,
+    "response_time": 7.408061981201172,
+    "timestamp": "2025-08-14T17:56:01.289457",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "importance_detected": null
+    }
+  },
+  {
+    "test_name": "Email Analysis",
+    "query": "Read this email: Subject: Team Meeting Tomorrow. From: Manager. Hi everyone, just a reminder about our weekly team meeting tomorrow at 2 PM in conference room A.",
+    "success": false,
+    "response_time": 7.583730697631836,
+    "timestamp": "2025-08-14T17:56:08.873349",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "importance_detected": null
+    }
+  },
+  {
+    "test_name": "Email Analysis",
+    "query": "Summarize this email: Subject: Invoice #12345 Due. From: Accounting. This is a friendly reminder that invoice #12345 for $50,000 is due next week.",
+    "success": false,
+    "response_time": 3.681324005126953,
+    "timestamp": "2025-08-14T17:56:12.554859",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "importance_detected": null
+    }
+  },
+  {
+    "test_name": "SQL Query Routing",
+    "query": "What were our total sales last quarter?",
+    "success": true,
+    "response_time": 7.338475942611694,
+    "timestamp": "2025-08-14T17:56:19.893624",
+    "details": {
+      "intent": "SQL_QUERY",
+      "success": true,
+      "result_count": 0
+    }
+  },
+  {
+    "test_name": "SQL Query Routing",
+    "query": "Show me the revenue breakdown by product category",
+    "success": true,
+    "response_time": 8.704992771148682,
+    "timestamp": "2025-08-14T17:56:28.598755",
+    "details": {
+      "intent": "SQL_QUERY",
+      "success": true,
+      "result_count": 0
+    }
+  },
+  {
+    "test_name": "SQL Query Routing",
+    "query": "Which departments have the highest costs?",
+    "success": false,
+    "response_time": 6.164065361022949,
+    "timestamp": "2025-08-14T17:56:34.763005",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "result_count": 0
+    }
+  },
+  {
+    "test_name": "SQL Query Routing",
+    "query": "Calculate our profit margins for this year",
+    "success": true,
+    "response_time": 7.072477102279663,
+    "timestamp": "2025-08-14T17:56:41.835605",
+    "details": {
+      "intent": "SQL_QUERY",
+      "success": true,
+      "result_count": 0
+    }
+  },
+  {
+    "test_name": "SQL Query Routing",
+    "query": "Find the top 10 customers by revenue",
+    "success": true,
+    "response_time": 8.573976516723633,
+    "timestamp": "2025-08-14T17:56:50.409817",
+    "details": {
+      "intent": "SQL_QUERY",
+      "success": true,
+      "result_count": 10
+    }
+  },
+  {
+    "test_name": "Document Search Routing",
+    "query": "Find information about our strategic business plan",
+    "success": true,
+    "response_time": 8.72414779663086,
+    "timestamp": "2025-08-14T17:56:59.134133",
+    "details": {
+      "intent": "DOCUMENT_SEARCH",
+      "success": true,
+      "chunks_found": 9
+    }
+  },
+  {
+    "test_name": "Document Search Routing",
+    "query": "Search for details about market analysis and competitor research",
+    "success": false,
+    "response_time": 7.658265829086304,
+    "timestamp": "2025-08-14T17:57:06.792512",
+    "details": {
+      "intent": "SQL_QUERY",
+      "success": true,
+      "chunks_found": 0
+    }
+  },
+  {
+    "test_name": "Document Search Routing",
+    "query": "Look for documents mentioning financial projections",
+    "success": false,
+    "response_time": 9.622602224349976,
+    "timestamp": "2025-08-14T17:57:16.415183",
+    "details": {
+      "intent": "SQL_QUERY",
+      "success": true,
+      "chunks_found": 0
+    }
+  },
+  {
+    "test_name": "Document Search Routing",
+    "query": "Find references to operational efficiency improvements",
+    "success": true,
+    "response_time": 4.221534490585327,
+    "timestamp": "2025-08-14T17:57:20.636810",
+    "details": {
+      "intent": "DOCUMENT_SEARCH",
+      "success": true,
+      "chunks_found": 0
+    }
+  },
+  {
+    "test_name": "Document Search Routing",
+    "query": "Search for information about our product development roadmap",
+    "success": true,
+    "response_time": 4.091146469116211,
+    "timestamp": "2025-08-14T17:57:24.728032",
+    "details": {
+      "intent": "DOCUMENT_SEARCH",
+      "success": true,
+      "chunks_found": 7
+    }
+  },
+  {
+    "test_name": "General Chat",
+    "query": "Hello, how are you today?",
+    "success": true,
+    "response_time": 4.01633095741272,
+    "timestamp": "2025-08-14T17:57:28.744524",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "response_length": 103
+    }
+  },
+  {
+    "test_name": "General Chat",
+    "query": "What can you help me with?",
+    "success": true,
+    "response_time": 5.9386608600616455,
+    "timestamp": "2025-08-14T17:57:34.683341",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "response_length": 683
+    }
+  },
+  {
+    "test_name": "General Chat",
+    "query": "Show me the system status",
+    "success": true,
+    "response_time": 5.838557481765747,
+    "timestamp": "2025-08-14T17:57:40.522010",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "response_length": 341
+    }
+  },
+  {
+    "test_name": "General Chat",
+    "query": "What are your capabilities?",
+    "success": true,
+    "response_time": 5.655504941940308,
+    "timestamp": "2025-08-14T17:57:46.177694",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "response_length": 615
+    }
+  },
+  {
+    "test_name": "General Chat",
+    "query": "Thanks for your help!",
+    "success": true,
+    "response_time": 7.451570749282837,
+    "timestamp": "2025-08-14T17:57:53.629473",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "success": true,
+      "response_length": 43
+    }
+  },
+  {
+    "test_name": "Context Step 1",
+    "query": "What were our sales figures last quarter?",
+    "success": true,
+    "response_time": 6.148922443389893,
+    "timestamp": "2025-08-14T17:57:59.778743",
+    "details": {
+      "intent": "SQL_QUERY",
+      "context_length": 62,
+      "success": true
+    }
+  },
+  {
+    "test_name": "Context Step 2",
+    "query": "Can you break that down by region?",
+    "success": true,
+    "response_time": 5.13866114616394,
+    "timestamp": "2025-08-14T17:58:05.918738",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "context_length": 62,
+      "success": true
+    }
+  },
+  {
+    "test_name": "Context Step 3",
+    "query": "Which region performed the best?",
+    "success": true,
+    "response_time": 5.244340658187866,
+    "timestamp": "2025-08-14T17:58:12.165462",
+    "details": {
+      "intent": "GENERAL_CHAT",
+      "context_length": 67,
+      "success": true
+    }
+  },
+  {
+    "test_name": "Context Step 4",
+    "query": "Draft an email to the sales team about these results",
+    "success": true,
+    "response_time": 11.38944673538208,
+    "timestamp": "2025-08-14T17:58:24.555291",
+    "details": {
+      "intent": "EMAIL_DRAFT",
+      "context_length": 77,
+      "success": true
+    }
+  }
+]
