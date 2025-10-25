@@ -10,6 +10,7 @@ import pandas as pd
 import os
 import time
 import hashlib
+from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -289,25 +290,25 @@ Return only the table name."""
 
 class HybridRetriever:
     """
-    Enhanced hybrid retriever with LLM-based table selection.
+    Enhanced hybrid retriever with LLM-based table selection using Snowflake Arctic Embed.
     Combines vector similarity search with SQL query generation.
     """
     
     def __init__(self, 
                  db_config: Optional[Dict[str, str]] = None,
                  openai_api_key: Optional[str] = None,
-                 embedding_model: str = "text-embedding-3-small",
+                 embedding_model: str = "Snowflake/snowflake-arctic-embed-l",
                  vector_similarity_threshold: float = 0.25,
                  max_vector_results: int = 10,
                  max_sql_results: int = 50,
                  prefix_config: Optional[TablePrefixConfig] = None):
         """
-        Initialize the hybrid retriever with LLM table selection.
+        Initialize the hybrid retriever with LLM table selection and Snowflake embeddings.
         
         Args:
             db_config: Database configuration
-            openai_api_key: OpenAI API key
-            embedding_model: OpenAI embedding model to use
+            openai_api_key: OpenAI API key (for LLM table selection and SQL generation)
+            embedding_model: Snowflake embedding model to use
             vector_similarity_threshold: Maximum similarity threshold for vector search
             max_vector_results: Maximum number of vector search results
             max_sql_results: Maximum number of SQL query results
@@ -317,11 +318,17 @@ class HybridRetriever:
         self.engine = self._create_engine()
         self.metadata = MetaData()
         
-        # OpenAI configuration
+        # OpenAI configuration for LLM operations (not embeddings)
         self.openai_api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
-        self.embedding_model = embedding_model
         if self.openai_api_key:
             openai.api_key = self.openai_api_key
+        
+        # Initialize Snowflake Arctic Embed model for embeddings
+        logger.info(f"Loading Snowflake embedding model: {embedding_model}")
+        self.embedding_model = SentenceTransformer(embedding_model)
+        self.embedding_model_name = embedding_model
+        self.embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
+        logger.info(f"Embedding dimension: {self.embedding_dim}")
         
         # Search parameters
         self.vector_similarity_threshold = min(vector_similarity_threshold, 0.25)
@@ -335,7 +342,7 @@ class HybridRetriever:
         # Cache for table schemas to avoid repeated queries
         self._table_schema_cache = {}
         
-        logger.info(f"HybridRetriever initialized with LLM table selection")
+        logger.info(f"HybridRetriever initialized with Snowflake Arctic Embed and LLM table selection")
     
     def _get_default_db_config(self) -> Dict[str, str]:
         """Get default PostgreSQL configuration."""
@@ -356,32 +363,37 @@ class HybridRetriever:
         )
         return create_engine(connection_string, echo=False)
     
-    def _generate_embedding(self, text: str, max_retries: int = 3) -> Optional[List[float]]:
-        """Generate embedding for text using OpenAI API with retry logic."""
-        if not self.openai_api_key:
-            logger.warning("No OpenAI API key provided, skipping embedding generation")
-            return None
+    def _generate_embedding(self, text: str, is_query: bool = False) -> Optional[List[float]]:
+        """
+        Generate embedding for text using Snowflake Arctic Embed model.
         
-        for attempt in range(max_retries):
-            try:
-                response = openai.embeddings.create(
-                    model=self.embedding_model,
-                    input=text
+        Args:
+            text: Text to generate embedding for
+            is_query: If True, uses the query prompt for better search performance
+            
+        Returns:
+            List of floats representing the embedding, or None if failed
+        """
+        try:
+            if is_query:
+                # Use query prompt for search queries
+                embedding = self.embedding_model.encode(
+                    text, 
+                    prompt_name="query",
+                    convert_to_numpy=True
                 )
-                return response.data[0].embedding
-                
-            except openai.RateLimitError:
-                wait_time = (2 ** attempt) + 1
-                logger.warning(f"Rate limit hit, waiting {wait_time} seconds before retry {attempt + 1}")
-                time.sleep(wait_time)
-                
-            except Exception as e:
-                logger.error(f"Error generating embedding (attempt {attempt + 1}): {str(e)}")
-                if attempt == max_retries - 1:
-                    return None
-                time.sleep(1)
-        
-        return None
+            else:
+                # Regular encoding for documents
+                embedding = self.embedding_model.encode(
+                    text,
+                    convert_to_numpy=True
+                )
+            
+            return embedding.tolist()
+            
+        except Exception as e:
+            logger.error(f"Error generating embedding: {str(e)}")
+            return None
     
     def _get_available_tables_by_type(self, search_type: str) -> List[str]:
         """Get available tables filtered by search type and prefixes."""
@@ -460,7 +472,7 @@ Should this use vector search (documents) or sql search (structured data)?"""
     
     def vector_search(self, query: str, selected_table: Optional[str] = None) -> List[Dict[str, Any]]:
         """
-        Perform vector similarity search on the selected table.
+        Perform vector similarity search on the selected table using Snowflake Arctic Embed.
         
         Args:
             query: Search query text
@@ -469,13 +481,10 @@ Should this use vector search (documents) or sql search (structured data)?"""
         Returns:
             List of similar chunks with similarity scores
         """
-        if not self.openai_api_key:
-            logger.warning("No OpenAI API key provided, cannot perform vector search")
-            return []
-        
         try:
-            # Get query embedding
-            query_embedding = self._generate_embedding(query)
+            # Get query embedding with query prompt
+            logger.info("Generating query embedding with Snowflake Arctic Embed...")
+            query_embedding = self._generate_embedding(query, is_query=True)
             if not query_embedding:
                 logger.error("Failed to generate embedding for query")
                 return []
@@ -556,7 +565,7 @@ Should this use vector search (documents) or sql search (structured data)?"""
                             'similarity_score': similarity,
                             'source_type': 'pdf_vector',
                             'selected_table': selected_table,
-                            'embedding_model': row.embedding_model or self.embedding_model,
+                            'embedding_model': row.embedding_model or self.embedding_model_name,
                             'metadata': chunk_metadata
                         }
                         all_chunks.append(chunk)
@@ -869,7 +878,8 @@ Return only the SQL query."""
                 'max_results': {
                     'vector': self.max_vector_results,
                     'sql': self.max_sql_results
-                }
+                },
+                'embedding_model': self.embedding_model_name
             }
             
             # Query information
@@ -930,7 +940,9 @@ Return only the SQL query."""
                     'vector_similarity_threshold': self.vector_similarity_threshold,
                     'max_vector_results': self.max_vector_results,
                     'max_sql_results': self.max_sql_results
-                }
+                },
+                'embedding_model': self.embedding_model_name,
+                'embedding_dimension': self.embedding_dim
             }
             
         except Exception as e:
@@ -1032,15 +1044,15 @@ Return only the SQL query."""
 # Convenience functions for easy integration
 def create_retriever(db_config: Optional[Dict[str, str]] = None,
                     openai_api_key: Optional[str] = None,
-                    embedding_model: str = "text-embedding-3-small",
+                    embedding_model: str = "Snowflake/snowflake-arctic-embed-l",
                     custom_prefixes: Optional[Dict[str, Dict[str, str]]] = None) -> HybridRetriever:
     """
-    Create a HybridRetriever instance with default or custom settings.
+    Create a HybridRetriever instance with Snowflake Arctic Embed.
     
     Args:
         db_config: Database configuration
-        openai_api_key: OpenAI API key
-        embedding_model: OpenAI embedding model to use
+        openai_api_key: OpenAI API key (for LLM operations, not embeddings)
+        embedding_model: Snowflake embedding model to use
         custom_prefixes: Custom prefix configuration
             Format: {'prefix_': {'search_type': 'vector|sql', 'description': 'desc'}}
         
@@ -1081,11 +1093,14 @@ if __name__ == "__main__":
     
     # Initialize retriever
     retriever = create_retriever(
-        openai_api_key=os.getenv('OPENAI_API_KEY')
+        openai_api_key=os.getenv('OPENAI_API_KEY'),
+        embedding_model="Snowflake/snowflake-arctic-embed-l"
     )
     
     try:
-        print("Enhanced HybridRetriever with LLM Table Selection initialized!")
+        print("Enhanced HybridRetriever with Snowflake Arctic Embed initialized!")
+        print(f"Embedding model: {retriever.embedding_model_name}")
+        print(f"Embedding dimension: {retriever.embedding_dim}")
         
         # Show available sources
         sources = retriever.get_available_sources()
@@ -1142,6 +1157,7 @@ if __name__ == "__main__":
         print(f"Vector Results: {len(result.vector_chunks)}")
         print(f"SQL Results: {len(result.sql_results)}")
         print(f"Processing Time: {result.metadata.get('total_retrieval_time', 0):.2f}s")
+        print(f"Embedding Model: {result.metadata.get('embedding_model')}")
         
         if result.vector_chunks:
             print(f"\nSample Vector Result:")
@@ -1178,19 +1194,6 @@ if __name__ == "__main__":
             print(f"  Similarity: {chunk.get('similarity_score', 0):.3f}")
             print(f"  Page: {chunk.get('page_number')}")
             print(f"  Text Preview: {chunk.get('text', '')[:150]}...")
-        
-        # Test adding custom prefixes
-        print("\n" + "="*70)
-        print("TESTING CUSTOM PREFIX ADDITION")
-        print("="*70)
-        
-        retriever.add_table_prefix('analytics_', 'sql', 'Analytics and metrics tables')
-        retriever.add_table_prefix('logs_', 'vector', 'Application log documents')
-        
-        updated_sources = retriever.get_available_sources()
-        print("Updated Prefix Configuration:")
-        for prefix, config in updated_sources.get('prefix_config', {}).items():
-            print(f"  {prefix}: {config['search_type']} - {config['description']}")
         
     except Exception as e:
         print(f"Error: {str(e)}")
