@@ -19,12 +19,11 @@ from watchdog.events import FileSystemEventHandler
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
-import spacy
 import tiktoken
-import openai
 import numpy as np
 from pgvector.sqlalchemy import Vector
 import time
+from sentence_transformers import SentenceTransformer
 
 # Download required NLTK data
 try:
@@ -62,16 +61,14 @@ class PDFFileHandler(FileSystemEventHandler):
 
 class PDFProcessorSeparateTables:
     def __init__(self, db_config: Optional[Dict[str, str]] = None, 
-                 openai_api_key: Optional[str] = None,
-                 embedding_model: str = "text-embedding-3-small",
+                 embedding_model_name: str = "Snowflake/snowflake-arctic-embed-l",
                  watch_directory: str = None):
         """
-        Initialize PDF processor with separate vector tables per PDF.
+        Initialize PDF processor with Snowflake Arctic Embed model for separate vector tables per PDF.
         
         Args:
             db_config: Database configuration. If None, uses defaults.
-            openai_api_key: OpenAI API key for embeddings
-            embedding_model: OpenAI embedding model to use
+            embedding_model_name: Snowflake embedding model to use
             watch_directory: Directory to watch for new PDF files
         """
         self.db_config = db_config or self._get_default_db_config()
@@ -80,24 +77,17 @@ class PDFProcessorSeparateTables:
         self.watch_directory = watch_directory
         self.observer = None
         
-        # OpenAI configuration
-        self.openai_api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
-        self.embedding_model = embedding_model
-        if self.openai_api_key:
-            openai.api_key = self.openai_api_key
+        # Initialize Snowflake Arctic Embed model
+        logger.info(f"Loading Snowflake embedding model: {embedding_model_name}")
+        self.embedding_model = SentenceTransformer(embedding_model_name)
+        self.embedding_model_name = embedding_model_name
         
-        # Get embedding dimensions
-        self.embedding_dim = self._get_embedding_dimensions()
+        # Get embedding dimensions from the model
+        self.embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
+        logger.info(f"Embedding dimension: {self.embedding_dim}")
         
         # Initialize text processing tools
         self.encoding = tiktoken.get_encoding("cl100k_base")
-        
-        # Try to load spaCy model for better text processing
-        try:
-            self.nlp = spacy.load("en_core_web_sm")
-        except OSError:
-            logger.warning("spaCy English model not found. Using basic text processing.")
-            self.nlp = None
         
         # Create database if it doesn't exist
         self._ensure_database_exists()
@@ -115,15 +105,6 @@ class PDFProcessorSeparateTables:
             'username': os.getenv('POSTGRES_USER', 'postgres'),
             'password': os.getenv('POSTGRES_PASSWORD', '')
         }
-    
-    def _get_embedding_dimensions(self) -> int:
-        """Get the dimensions for the embedding model."""
-        model_dimensions = {
-            'text-embedding-3-small': 1536,
-            'text-embedding-3-large': 3072,
-            'text-embedding-ada-002': 1536,
-        }
-        return model_dimensions.get(self.embedding_model, 1536)
     
     def _ensure_database_exists(self):
         """Create database if it doesn't exist."""
@@ -718,39 +699,36 @@ class PDFProcessorSeparateTables:
         
         return all_chunks
     
-    def _generate_embedding(self, text: str, max_retries: int = 3) -> Optional[List[float]]:
-        """Generate embedding for text using OpenAI API with retry logic."""
-        if not self.openai_api_key:
-            logger.warning("No OpenAI API key provided, skipping embedding generation")
+    def _generate_embedding(self, text: str) -> Optional[List[float]]:
+        """
+        Generate embedding for text using Snowflake Arctic Embed model.
+        
+        Args:
+            text: Text to generate embedding for
+            
+        Returns:
+            List of floats representing the embedding, or None if failed
+        """
+        try:
+            # For document chunks, don't use any special prompt
+            embedding = self.embedding_model.encode(text, convert_to_numpy=True)
+            return embedding.tolist()
+            
+        except Exception as e:
+            logger.error(f"Error generating embedding: {str(e)}")
             return None
-        
-        for attempt in range(max_retries):
-            try:
-                response = openai.embeddings.create(
-                    model=self.embedding_model,
-                    input=text
-                )
-                return response.data[0].embedding
-                
-            except openai.RateLimitError:
-                wait_time = (2 ** attempt) + 1
-                logger.warning(f"Rate limit hit, waiting {wait_time} seconds before retry {attempt + 1}")
-                time.sleep(wait_time)
-                
-            except Exception as e:
-                logger.error(f"Error generating embedding (attempt {attempt + 1}): {str(e)}")
-                if attempt == max_retries - 1:
-                    return None
-                time.sleep(1)
-        
-        return None
     
-    def _batch_generate_embeddings(self, texts: List[str], batch_size: int = 100) -> List[Optional[List[float]]]:
-        """Generate embeddings for multiple texts in batches."""
-        if not self.openai_api_key:
-            logger.warning("No OpenAI API key provided, skipping embedding generation")
-            return [None] * len(texts)
+    def _batch_generate_embeddings(self, texts: List[str], batch_size: int = 32) -> List[Optional[List[float]]]:
+        """
+        Generate embeddings for multiple texts in batches using Snowflake Arctic Embed.
         
+        Args:
+            texts: List of texts to embed
+            batch_size: Number of texts to process at once
+            
+        Returns:
+            List of embeddings (or None for failed embeddings)
+        """
         embeddings = []
         
         for i in range(0, len(texts), batch_size):
@@ -758,15 +736,16 @@ class PDFProcessorSeparateTables:
             logger.info(f"Generating embeddings for batch {i//batch_size + 1}/{(len(texts) + batch_size - 1)//batch_size}")
             
             try:
-                response = openai.embeddings.create(
-                    model=self.embedding_model,
-                    input=batch
+                # Generate embeddings for the batch
+                batch_embeddings = self.embedding_model.encode(
+                    batch, 
+                    convert_to_numpy=True,
+                    show_progress_bar=False
                 )
                 
-                batch_embeddings = [item.embedding for item in response.data]
-                embeddings.extend(batch_embeddings)
-                
-                time.sleep(0.1)
+                # Convert numpy arrays to lists
+                for emb in batch_embeddings:
+                    embeddings.append(emb.tolist())
                 
             except Exception as e:
                 logger.error(f"Error generating batch embeddings: {str(e)}")
@@ -798,7 +777,7 @@ class PDFProcessorSeparateTables:
                 'total_pages': metadata.get('total_pages', 0),
                 'extraction_method': extraction_method,
                 'metadata': json.dumps(metadata),
-                'embedding_model': self.embedding_model,
+                'embedding_model': self.embedding_model_name,
                 'vector_table_name': vector_table_name
             })
             doc_id = result.fetchone()[0]
@@ -812,7 +791,7 @@ class PDFProcessorSeparateTables:
         
         # Generate embeddings for all chunks
         texts = [chunk['text'] for chunk in chunks]
-        logger.info(f"Generating embeddings for {len(texts)} chunks...")
+        logger.info(f"Generating embeddings for {len(texts)} chunks using Snowflake Arctic Embed...")
         embeddings = self._batch_generate_embeddings(texts)
         
         # Prepare chunk records
@@ -840,7 +819,7 @@ class PDFProcessorSeparateTables:
                         'chunk_type': chunk['chunk_type'],
                         'metadata': json.dumps(chunk['metadata']),
                         'embedding': embedding,
-                        'embedding_model': self.embedding_model if embedding else None
+                        'embedding_model': self.embedding_model_name if embedding else None
                     }
                     
                     conn.execute(text(insert_sql), chunk_record)
@@ -1037,6 +1016,7 @@ class PDFProcessorSeparateTables:
                 'extraction_method': used_method,
                 'chunking_strategy': chunking_strategy,
                 'embeddings_generated': generate_embeddings,
+                'embedding_model': self.embedding_model_name,
                 'statistics': {
                     'total_pages': len(pages_data),
                     'total_characters': total_chars,
@@ -1076,6 +1056,7 @@ class PDFProcessorSeparateTables:
                              similarity_threshold: float = 0.7) -> List[Dict[str, Any]]:
         """
         Search for similar chunks using vector similarity in specific table or all tables.
+        Uses Snowflake Arctic Embed model for query encoding.
         
         Args:
             query_text: Text to search for
@@ -1087,13 +1068,15 @@ class PDFProcessorSeparateTables:
         Returns:
             List of similar chunks with similarity scores
         """
-        if not self.openai_api_key:
-            logger.warning("No OpenAI API key provided, cannot perform vector search")
-            return []
-        
         try:
-            # Generate embedding for query
-            query_embedding = self._generate_embedding(query_text)
+            # Generate embedding for query using the "query" prompt for better search
+            logger.info(f"Generating query embedding using Snowflake Arctic Embed...")
+            query_embedding = self.embedding_model.encode(
+                query_text, 
+                prompt_name="query",
+                convert_to_numpy=True
+            ).tolist()
+            
             if not query_embedding:
                 logger.error("Failed to generate embedding for query")
                 return []
@@ -1243,7 +1226,7 @@ class PDFProcessorSeparateTables:
             with self.engine.connect() as conn:
                 result = conn.execute(text("""
                     SELECT vector_table_name, file_name, total_chunks, total_tokens, 
-                           processing_status, processed_at
+                           processing_status, processed_at, embedding_model
                     FROM pdf_documents 
                     WHERE vector_table_created = TRUE
                     ORDER BY processed_at DESC
@@ -1256,7 +1239,8 @@ class PDFProcessorSeparateTables:
                         table_info.update({
                             'processing_status': row.processing_status,
                             'processed_at': row.processed_at,
-                            'total_tokens': row.total_tokens
+                            'total_tokens': row.total_tokens,
+                            'embedding_model': row.embedding_model
                         })
                         tables.append(table_info)
                 
@@ -1386,7 +1370,9 @@ class PDFProcessorSeparateTables:
                         'sample_total_chunks': total_chunks_actual,
                         'sample_total_embeddings': total_embeddings_actual,
                         'sample_embedding_coverage': round((total_embeddings_actual / max(total_chunks_actual, 1)) * 100, 2)
-                    }
+                    },
+                    'embedding_model': self.embedding_model_name,
+                    'embedding_dimension': self.embedding_dim
                 }
                 
         except Exception as e:
@@ -1440,16 +1426,14 @@ class PDFProcessorSeparateTables:
 
 
 # Integration functions
-def setup_pdf_processor_separate_tables(pdf_directory: str = "data/documents/pdfs/", 
-                                       openai_api_key: str = None,
-                                       embedding_model: str = "text-embedding-3-small") -> PDFProcessorSeparateTables:
+def setup_pdf_processor_separate_tables(pdf_directory: str = "data/documents/pdfs/",
+                                        embedding_model: str = "Snowflake/snowflake-arctic-embed-l") -> PDFProcessorSeparateTables:
     """
-    Set up PDF processor with separate vector tables and automatic file watching.
+    Set up PDF processor with Snowflake Arctic Embed and automatic file watching.
     
     Args:
         pdf_directory: Directory containing PDF files
-        openai_api_key: OpenAI API key for embeddings
-        embedding_model: OpenAI embedding model to use
+        embedding_model: Snowflake embedding model to use
         
     Returns:
         Configured PDFProcessorSeparateTables instance
@@ -1465,9 +1449,8 @@ def setup_pdf_processor_separate_tables(pdf_directory: str = "data/documents/pdf
     
     # Initialize processor
     processor = PDFProcessorSeparateTables(
-        db_config=db_config, 
-        openai_api_key=openai_api_key,
-        embedding_model=embedding_model,
+        db_config=db_config,
+        embedding_model_name=embedding_model,
         watch_directory=pdf_directory
     )
     
@@ -1488,19 +1471,22 @@ if __name__ == "__main__":
     )
     
     # Initialize processor
+    print("Initializing PDF processor with Snowflake Arctic Embed...")
     processor = setup_pdf_processor_separate_tables(
         pdf_directory="data/documents/pdfs/",
-        openai_api_key=os.getenv('OPENAI_API_KEY'),
-        embedding_model="text-embedding-3-small"
+        embedding_model="Snowflake/snowflake-arctic-embed-l"
     )
     
     try:
-        print("PDF processor with separate vector tables started. Watching for new files...")
-        print("Available commands:")
+        print(f"\nPDF processor with Snowflake Arctic Embed started!")
+        print(f"Embedding model: {processor.embedding_model_name}")
+        print(f"Embedding dimension: {processor.embedding_dim}")
+        print(f"Watching for new files in: {processor.watch_directory}")
+        print("\nAvailable commands:")
         print("- Press 's' to show processing stats")
         print("- Press 'l' to list all documents")
         print("- Press 'v' to list vector tables")
-        print("- Press 'q <query>' to search similar chunks across all tables")
+        print("- Press 't <query>' to test search")
         print("- Press 'Ctrl+C' to stop")
         
         # Keep the script running
