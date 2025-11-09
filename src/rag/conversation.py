@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 """
-Console-based Conversational RAG System with Email Functionality (LM Studio version)
+Console-based Conversational RAG System with Email Functionality
 
-This module provides a console interface that allows a CEO (or other
-executives) to interact with a Retrieval-Augmented Generation (RAG)
-system. The assistant can search documents, query structured data,
-draft/analyze emails, and chat—using a local LM Studio-compatible API.
-
-Changes in this version:
-- Replaced OpenAI SDK usage with LM Studio-style client initialization:
-    from openai import OpenAI
-    client = OpenAI(base_url="http://localhost:1234/v1", api_key="not-needed")
-- All model calls now use `client.chat.completions.create(...)`.
-- Model name and base URL are configurable via environment variables.
+This version:
+- Uses LM Studio via OpenAI-compatible API (http://localhost:1234/v1)
+- Initializes a single OpenAI client and passes it everywhere
+- Forces retriever to use 'Snowflake/snowflake-arctic-embed-l' embeddings
+- Avoids any calls to api.openai.com
 """
 
 import logging
@@ -26,41 +20,27 @@ from datetime import datetime
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from openai import OpenAI  # LM Studio-compatible client
 
-# Import the retriever; exit with a helpful message if missing.
+# --- LM Studio / OpenAI-compatible client setup ---
+# These env vars help if code inside retriever.py constructs its own client
+os.environ.setdefault("OPENAI_BASE_URL", "http://localhost:1234/v1")
+os.environ.setdefault("OPENAI_API_KEY", "not-needed")
+
+from openai import OpenAI  # pip install openai>=1.0.0
+
+# Single shared client for the whole app (LM Studio)
+LMSTUDIO_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://localhost:1234/v1")
+LMSTUDIO_API_KEY = os.getenv("OPENAI_API_KEY", "not-needed")
+client = OpenAI(base_url=LMSTUDIO_BASE_URL, api_key=LMSTUDIO_API_KEY)
+
+# --- Import retriever (your existing module) ---
 try:
     from retriever import HybridRetriever, RetrievalResult, create_retriever
 except ImportError:
-    print(
-        "Error: Could not import retriever module. Make sure retriever.py is in the same directory."
-    )
+    print("Error: Could not import retriever module. Make sure retriever.py is in the same directory.")
     sys.exit(1)
 
-# --- Configuration helpers ---
-
-def create_lmstudio_client() -> OpenAI:
-    """
-    Create an OpenAI-compatible client pointing to LM Studio (or another compatible server).
-    Environment overrides:
-      LMSTUDIO_BASE_URL (default: http://localhost:1234/v1)
-      LMSTUDIO_API_KEY  (default: not-needed)
-    """
-    base_url = os.getenv("LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
-    api_key = os.getenv("LMSTUDIO_API_KEY", "not-needed")
-    return OpenAI(base_url=base_url, api_key=api_key)
-
-
-def get_chat_model_name() -> str:
-    """
-    Resolve chat model name for LM Studio.
-    Environment override:
-      LMSTUDIO_MODEL_NAME (default: openai/gpt-oss-20b)
-    """
-    return os.getenv("LMSTUDIO_MODEL_NAME", "openai/gpt-oss-20b")
-
-
-# Configure logging to file and stdout.
+# --- Logging ---
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -113,22 +93,24 @@ class ConversationContext:
         if not self.history:
             return ""
         recent = self.history[-max_exchanges:]
-        context_parts: List[str] = []
-        for exchange in recent:
-            context_parts.append(f"User: {exchange['user_query']}")
-            response = exchange["assistant_response"]
-            if len(response) > 200:
-                response = response[:200] + "..."
-            context_parts.append(f"Assistant: {response}")
-        return "\n".join(context_parts)
+        parts: List[str] = []
+        for ex in recent:
+            parts.append(f"User: {ex['user_query']}")
+            resp = ex["assistant_response"]
+            if len(resp) > 200:
+                resp = resp[:200] + "..."
+            parts.append(f"Assistant: {resp}")
+        return "\n".join(parts)
 
+
+# ---------------- Email + LLM helpers (LM Studio) ----------------
 
 class EmailProcessor:
-    """Handles drafting and analyzing emails via LM Studio-compatible chat API."""
-
-    def __init__(self, client: OpenAI, model_name: str) -> None:
-        self.client = client
-        self.model_name = model_name
+    """Drafts and analyzes emails using the LM Studio client."""
+    def __init__(self, lm_client: OpenAI) -> None:
+        self.client = lm_client
+        # Choose a local LM Studio chat model name you have loaded
+        self.chat_model = os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b")
 
     def draft_email(
         self,
@@ -167,29 +149,22 @@ class EmailProcessor:
             )
             full_prompt = "\n".join(prompt_parts)
 
-            response = self.client.chat.completions.create(
-                model=self.model_name,
+            resp = self.client.chat.completions.create(
+                model=self.chat_model,
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are an expert business email writer specializing in executive communications. "
-                            "Create professional, effective emails that achieve the user's goals."
-                        ),
+                        "content": "You are an expert business email writer specializing in executive communications."
                     },
                     {"role": "user", "content": full_prompt},
                 ],
                 max_tokens=1000,
                 temperature=0.3,
             )
-            email_content = response.choices[0].message.content.strip()
+            email_content = resp.choices[0].message.content.strip()
 
-            subject_match = re.search(
-                r"Subject:\s*(.+?)(?:\n|$)", email_content, re.IGNORECASE
-            )
-            recipient_match = re.search(
-                r"(?:To|Recipient):\s*(.+?)(?:\n|$)", email_content, re.IGNORECASE
-            )
+            subject_match = re.search(r"Subject:\s*(.+?)(?:\n|$)", email_content, re.IGNORECASE)
+            recipient_match = re.search(r"(?:To|Recipient):\s*(.+?)(?:\n|$)", email_content, re.IGNORECASE)
             extracted_subject = subject_match.group(1).strip() if subject_match else subject
             extracted_recipient = recipient_match.group(1).strip() if recipient_match else recipient
 
@@ -204,7 +179,7 @@ class EmailProcessor:
                 },
                 "metadata": {
                     "generated_at": datetime.now().isoformat(),
-                    "model_used": self.model_name,
+                    "model_used": self.chat_model,
                     "has_context": bool(context),
                 },
             }
@@ -242,29 +217,23 @@ Provide a detailed analysis covering:
 10. BUSINESS IMPACT: Potential impact on business operations
 11. STAKEHOLDERS: Who else might need to be involved
 12. RECOMMENDATIONS: Suggested next steps or actions
+""".strip()
 
-Be thorough and consider both explicit and implicit information in the email.
-"""
-            response = self.client.chat.completions.create(
-                model=self.model_name,
+            resp = self.client.chat.completions.create(
+                model=self.chat_model,
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are an expert executive assistant specializing in email analysis and communications. "
-                            "Provide detailed, actionable insights."
-                        ),
+                        "content": "You are an expert executive assistant specializing in email analysis and business communications."
                     },
                     {"role": "user", "content": analysis_prompt},
                 ],
                 max_tokens=800,
                 temperature=0.1,
             )
-            analysis_content = response.choices[0].message.content.strip()
+            analysis_content = resp.choices[0].message.content.strip()
 
-            urgency_match = re.search(
-                r"URGENCY LEVEL:\s*(LOW|MEDIUM|HIGH|URGENT)", analysis_content, re.IGNORECASE
-            )
+            urgency_match = re.search(r"URGENCY LEVEL:\s*(LOW|MEDIUM|HIGH|URGENT)", analysis_content, re.IGNORECASE)
             priority_match = re.search(r"PRIORITY SCORE:\s*(\d+)", analysis_content)
             category_match = re.search(r"CATEGORY:\s*([^\n]+)", analysis_content, re.IGNORECASE)
 
@@ -286,7 +255,7 @@ Be thorough and consider both explicit and implicit information in the email.
                 },
                 "metadata": {
                     "analyzed_at": datetime.now().isoformat(),
-                    "model_used": self.model_name,
+                    "model_used": self.chat_model,
                 },
             }
         except Exception as e:
@@ -295,110 +264,96 @@ Be thorough and consider both explicit and implicit information in the email.
 
 
 class QueryClassifier:
-    """Classifies user queries via LM Studio-compatible chat API."""
+    """Classifies queries using LM Studio client (no external calls)."""
+    def __init__(self, lm_client: OpenAI) -> None:
+        self.client = lm_client
+        self.chat_model = os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b")
 
-    def __init__(self, client: OpenAI, model_name: str) -> None:
-        self.client = client
-        self.model_name = model_name
-
-    def classify_query(
-        self, query: str, context: str = ""
-    ) -> Tuple[QueryType, Dict[str, Any]]:
+    def classify_query(self, query: str, context: str = "") -> Tuple[QueryType, Dict[str, Any]]:
         try:
             classification_prompt = f"""
 Analyze this user query and classify it into one of these categories:
 
-1. DOCUMENT_SEARCH - Search through documents/PDFs/reports
-2. DATA_QUERY - Structured data / SQL / metrics
-3. EMAIL_DRAFT - Compose or draft an email
-4. EMAIL_ANALYZE - Analyze a received email
-5. HELP - Help/instructions/commands
-6. SYSTEM_STATUS - System status, available data
-7. GENERAL_CHAT - General conversation
+1. DOCUMENT_SEARCH
+2. DATA_QUERY
+3. EMAIL_DRAFT
+4. EMAIL_ANALYZE
+5. HELP
+6. SYSTEM_STATUS
+7. GENERAL_CHAT
 
-CONVERSATION CONTEXT:
+CONTEXT:
 {context}
 
-USER QUERY: {query}
+USER QUERY:
+{query}
 
-Respond with just the category name (e.g., "DOCUMENT_SEARCH") and extract any relevant details:
-- For EMAIL_DRAFT: recipient, subject, content request, tone
-- For EMAIL_ANALYZE: email content
-- For DOCUMENT_SEARCH: search terms
-- For DATA_QUERY: data/analysis needed
-"""
-            response = self.client.chat.completions.create(
-                model=self.model_name,
+Respond with the category name only. If you can, also extract quick params such as recipient/subject for email, or search terms for docs.
+""".strip()
+
+            resp = self.client.chat.completions.create(
+                model=self.chat_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a query classifier. Classify user queries accurately and extract any details.",
-                    },
+                    {"role": "system", "content": "You are a query classifier."},
                     {"role": "user", "content": classification_prompt},
                 ],
-                max_tokens=150,
-                temperature=0.1,
+                max_tokens=100,
+                temperature=0.0,
             )
-            classification_content = response.choices[0].message.content.strip().upper()
+            raw = resp.choices[0].message.content.strip().upper()
 
             query_type: Optional[QueryType] = None
             for qt in QueryType:
-                if qt.value.upper() in classification_content:
+                if qt.value.upper() in raw or qt.name in raw:
                     query_type = qt
                     break
 
             if not query_type:
-                query_lower = query.lower()
-                if any(w in query_lower for w in ["draft", "write", "compose", "email to"]):
+                # simple fallback
+                ql = query.lower()
+                if any(w in ql for w in ["draft", "write", "compose", "email to"]):
                     query_type = QueryType.EMAIL_DRAFT
-                elif any(w in query_lower for w in ["analyze email", "read email", "email from"]):
+                elif any(w in ql for w in ["analyze email", "read email", "email from"]):
                     query_type = QueryType.EMAIL_ANALYZE
-                elif any(w in query_lower for w in ["search", "find", "document", "report"]):
+                elif any(w in ql for w in ["search", "find", "document", "report", "pdf"]):
                     query_type = QueryType.DOCUMENT_SEARCH
-                elif any(w in query_lower for w in ["data", "statistics", "ranking", "top"]):
+                elif any(w in ql for w in ["data", "statistics", "ranking", "top"]):
                     query_type = QueryType.DATA_QUERY
-                elif any(w in query_lower for w in ["help", "how to", "what can"]):
+                elif any(w in ql for w in ["help", "how to", "what can"]):
                     query_type = QueryType.HELP
-                elif any(w in query_lower for w in ["status", "available", "sources"]):
+                elif any(w in ql for w in ["status", "available", "sources", "tables"]):
                     query_type = QueryType.SYSTEM_STATUS
                 else:
                     query_type = QueryType.GENERAL_CHAT
 
-            extracted_info = self._extract_query_info(query, query_type)
-            return query_type, extracted_info
+            extracted = self._extract_query_info(query, query_type)
+            return query_type, extracted
 
         except Exception as e:
             logger.error(f"Error classifying query: {str(e)}")
-            # Heuristic fallback
-            query_lower = query.lower()
-            if any(w in query_lower for w in ["draft", "write", "compose", "email to"]):
-                query_type = QueryType.EMAIL_DRAFT
-            elif any(w in query_lower for w in ["analyze email", "read email", "email from"]):
-                query_type = QueryType.EMAIL_ANALYZE
-            elif any(w in query_lower for w in ["search", "find", "document", "report"]):
-                query_type = QueryType.DOCUMENT_SEARCH
-            elif any(w in query_lower for w in ["data", "statistics", "ranking", "top"]):
-                query_type = QueryType.DATA_QUERY
-            elif any(w in query_lower for w in ["help", "how to", "what can"]):
-                query_type = QueryType.HELP
-            elif any(w in query_lower for w in ["status", "available", "sources"]):
-                query_type = QueryType.SYSTEM_STATUS
+            # simple fallback
+            ql = query.lower()
+            if any(w in ql for w in ["draft", "write", "compose", "email to"]):
+                qt = QueryType.EMAIL_DRAFT
+            elif any(w in ql for w in ["analyze email", "read email", "email from"]):
+                qt = QueryType.EMAIL_ANALYZE
+            elif any(w in ql for w in ["search", "find", "document", "report", "pdf"]):
+                qt = QueryType.DOCUMENT_SEARCH
+            elif any(w in ql for w in ["data", "statistics", "ranking", "top"]):
+                qt = QueryType.DATA_QUERY
+            elif any(w in ql for w in ["help", "how to", "what can"]):
+                qt = QueryType.HELP
+            elif any(w in ql for w in ["status", "available", "sources", "tables"]):
+                qt = QueryType.SYSTEM_STATUS
             else:
-                query_type = QueryType.GENERAL_CHAT
-            extracted_info = self._extract_query_info(query, query_type)
-            return query_type, extracted_info
+                qt = QueryType.GENERAL_CHAT
+            return qt, self._extract_query_info(query, qt)
 
-    def _extract_query_info(
-        self, query: str, query_type: QueryType
-    ) -> Dict[str, Any]:
+    def _extract_query_info(self, query: str, query_type: QueryType) -> Dict[str, Any]:
         info: Dict[str, Any] = {}
         if query_type == QueryType.EMAIL_DRAFT:
-            recipient_match = re.search(
-                r"(?:to|email)\s+(.+?)(?:\s+about|\s+regarding|$)", query, re.IGNORECASE
-            )
-            subject_match = re.search(
-                r"(?:about|regarding|subject)\s+(.+)", query, re.IGNORECASE
-            )
+            recipient_match = re.search(r"(?:to|email)\s+(.+?)(?:\s+about|\s+regarding|$)", query, re.IGNORECASE)
+            subject_match = re.search(r"(?:about|regarding|subject)\s+(.+)", query, re.IGNORECASE)
             info["recipient"] = recipient_match.group(1).strip() if recipient_match else ""
             info["subject"] = subject_match.group(1).strip() if subject_match else ""
             info["content_request"] = query
@@ -414,11 +369,10 @@ Respond with just the category name (e.g., "DOCUMENT_SEARCH") and extract any re
 
 
 class ResponseAnalyzer:
-    """Synthesizes and analyzes retrieved documents/data via LM Studio chat API."""
-
-    def __init__(self, client: OpenAI, model_name: str) -> None:
-        self.client = client
-        self.model_name = model_name
+    """Synthesizes results using LM Studio client."""
+    def __init__(self, lm_client: OpenAI) -> None:
+        self.client = lm_client
+        self.chat_model = os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b")
 
     def analyze_document_chunks(
         self,
@@ -429,19 +383,15 @@ class ResponseAnalyzer:
         try:
             chunk_info = []
             for i, chunk in enumerate(chunks[:5], 1):
-                chunk_summary = {
+                chunk_info.append({
                     "index": i,
                     "source": chunk.get("file_name", "Unknown document"),
                     "page": chunk.get("page_number", 1),
                     "similarity": chunk.get("similarity_score", 0),
                     "content": chunk.get("text", "")[:1500],
-                }
-                chunk_info.append(chunk_summary)
+                })
 
-            synthesis_prompt = f"""
-You are an expert business analyst reviewing document search results for a CEO. 
-Analyze the retrieved information and provide a comprehensive, executive-level response.
-
+            synthesis_prompt = f"""You are an expert business analyst reviewing document search results for a CEO.
 ORIGINAL QUERY: {query}
 
 CONVERSATION CONTEXT:
@@ -449,55 +399,45 @@ CONVERSATION CONTEXT:
 
 RETRIEVED INFORMATION:
 """
-            for chunk in chunk_info:
-                synthesis_prompt += f"""
-Document {chunk['index']}: {chunk['source']} (Page {chunk['page']}, Relevance: {chunk['similarity']:.3f})
-Content: {chunk['content']}
----
-"""
+            for c in chunk_info:
+                synthesis_prompt += (
+                    f"\nDocument {c['index']}: {c['source']} (Page {c['page']}, Relevance: {c['similarity']:.3f})\n"
+                    f"Content: {c['content']}\n---\n"
+                )
             synthesis_prompt += """
-
 ANALYSIS INSTRUCTIONS:
-1. Synthesize the information from all sources to directly answer the user's query
-2. Identify key themes, patterns, and insights across the documents
-3. Highlight the most important findings that address the query
-4. Note any contradictions or gaps in the information
-5. Provide specific details with document references
-6. Include quantitative data where available
-7. Structure the response with clear sections and bullet points
-8. If information is insufficient, clearly state what's missing
-9. Provide actionable insights or recommendations where appropriate
-10. Maintain an executive-level tone suitable for a CEO
+1) Synthesize information from all sources to answer the query directly.
+2) Highlight key findings, themes, and contradictions.
+3) Provide specific details with doc references.
+4) Use clear sections and bullet points.
 
 RESPONSE FORMAT:
-- Direct answer to the query
-- Detailed analysis with document references
+- Direct answer
+- Detailed analysis with references
 - Key insights and implications
-- Data sources and reliability
-- Recommendations or next steps
+- Recommendations (if applicable)
 """
-            response = self.client.chat.completions.create(
-                model=self.model_name,
+
+            resp = self.client.chat.completions.create(
+                model=self.chat_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert business intelligence analyst for executive decision-making.",
-                    },
+                    {"role": "system", "content": "You are an executive document analyst."},
                     {"role": "user", "content": synthesis_prompt},
                 ],
                 max_tokens=1200,
                 temperature=0.2,
             )
-            synthesized_response = response.choices[0].message.content.strip()
-            unique_sources = {chunk['source'] for chunk in chunk_info}
-            metadata_footer = f"""
+            synthesized = resp.choices[0].message.content.strip()
 
-📊 **Analysis Metadata:**
-• Sources analyzed: {len(unique_sources)} documents ({', '.join(sorted(unique_sources))})
-• Information chunks: {len(chunks)} total, {len(chunk_info)} analyzed in detail
-• Average relevance score: {sum(chunk.get('similarity_score', 0) for chunk in chunks) / max(len(chunks),1):.3f}
-• Analysis model: {self.model_name}"""
-            return synthesized_response + metadata_footer
+            unique_sources = {c['source'] for c in chunk_info}
+            footer = f"""
+
+📊 Analysis Metadata:
+• Sources analyzed: {len(unique_sources)} ({', '.join(sorted(unique_sources))})
+• Chunks considered: {len(chunks)} total, {len(chunk_info)} in detail
+• Avg relevance: { (sum(ch.get('similarity_score', 0) for ch in chunks) / max(1, len(chunks))):.3f }
+• Model: {self.chat_model}"""
+            return synthesized + footer
         except Exception as e:
             logger.error(f"Error analyzing document chunks: {str(e)}")
             return f"❌ Error analyzing retrieved documents: {str(e)}"
@@ -516,77 +456,51 @@ RESPONSE FORMAT:
             data_summary = {
                 "row_count": len(results),
                 "columns": list(results[0].keys()) if results else [],
-                "sample_data": results[:10],
-                "data_types": {},
+                "sample": results[:5],
             }
-            if results:
-                first_row = results[0]
-                for col, value in first_row.items():
-                    if col in ["source_type", "generated_sql", "selected_table"]:
-                        continue
-                    if isinstance(value, (int, float)):
-                        data_summary["data_types"][col] = "numeric"
-                    elif isinstance(value, str) and value.isdigit():
-                        data_summary["data_types"][col] = "numeric_string"
-                    else:
-                        data_summary["data_types"][col] = "text"
 
-            analysis_prompt = f"""
-You are a senior business intelligence analyst providing executive-level data analysis for a CEO.
-Analyze the SQL query results and provide comprehensive insights.
-
+            prompt = f"""You are a senior business intelligence analyst.
 ORIGINAL QUERY: {query}
 
-CONVERSATION CONTEXT:
+CONTEXT:
 {conversation_context}
 
-SQL QUERY EXECUTED:
+SQL EXECUTED:
 {generated_sql}
 
 DATA SUMMARY:
-- Total records: {data_summary['row_count']}
-- Columns: {', '.join(col for col in data_summary['columns'] if col not in ['source_type','generated_sql','selected_table'])}
+- Rows: {data_summary['row_count']}
+- Columns: {', '.join([c for c in data_summary['columns'] if c not in ['source_type','generated_sql','selected_table']])}
 
-SAMPLE DATA:
-{json.dumps([{k: v for k, v in row.items() if k not in ['source_type','generated_sql','selected_table']} for row in results[:5]], indent=2, ensure_ascii=False)}
+SAMPLE:
+{json.dumps([{k: v for k, v in row.items() if k not in ['source_type','generated_sql','selected_table']} for row in results[:5]], indent=2)}
 
-ANALYSIS INSTRUCTIONS:
-1. Directly answer the user's original query using the data
-2. Identify key patterns, trends, and insights
-3. Highlight top performers, outliers, and patterns
-4. Provide quantitative analysis (percentages/ratios) when useful
-5. Note data quality issues or limitations
-6. Provide business context and implications
-7. Structure the response clearly for executives
-
-RESPONSE FORMAT:
-- Executive Summary
-- Key Findings
-- Detailed Analysis
-- Business Implications
-- Recommendations
+INSTRUCTIONS:
+- Give an executive summary
+- Key findings with numbers
+- Detailed analysis and implications
+- Recommendations if useful
 """
-            response = self.client.chat.completions.create(
-                model=self.model_name,
+
+            resp = self.client.chat.completions.create(
+                model=self.chat_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a senior BI analyst specializing in executive reporting and data-driven insights.",
-                    },
-                    {"role": "user", "content": analysis_prompt},
+                    {"role": "system", "content": "You are a data analyst for executives."},
+                    {"role": "user", "content": prompt},
                 ],
                 max_tokens=1200,
                 temperature=0.1,
             )
-            analyzed_response = response.choices[0].message.content.strip()
-            metadata_footer = f"""
+            analyzed = resp.choices[0].message.content.strip()
 
-🔧 **Technical Details:**
-• Query returned {data_summary['row_count']} rows
-• Data source: {results[0].get('selected_table', 'Unknown table') if results else 'N/A'}
-• Analysis model: {self.model_name}
-• SQL: {generated_sql[:100]}{'...' if len(generated_sql) > 100 else ''}"""
-            return analyzed_response + metadata_footer
+            meta = f"""
+
+🔧 Technical:
+• Records: {data_summary['row_count']}
+• Source table: {results[0].get('selected_table', 'Unknown')}
+• Model: {self.chat_model}
+• SQL (truncated): {generated_sql[:100]}{'...' if len(generated_sql) > 100 else ''}"""
+            return analyzed + meta
         except Exception as e:
             logger.error(f"Error analyzing data results: {str(e)}")
             return f"❌ Error analyzing data results: {str(e)}"
@@ -599,95 +513,72 @@ RESPONSE FORMAT:
         conversation_context: str = "",
     ) -> str:
         try:
-            synthesis_prompt = f"""
-You are a senior executive advisor analyzing multiple information sources to provide comprehensive insights for a CEO.
-Synthesize information from both documents and structured data to answer the query thoroughly.
+            prompt = f"""You are a senior executive advisor combining documents and data.
 
-ORIGINAL QUERY: {query}
+QUERY: {query}
 
-CONVERSATION CONTEXT:
+CONTEXT:
 {conversation_context}
 
-DOCUMENT SOURCES:
+DOCUMENTS:
 """
             if vector_chunks:
-                for i, chunk in enumerate(vector_chunks[:3], 1):
-                    synthesis_prompt += f"""
-Document {i}: {chunk.get('file_name', 'Unknown')} (Page {chunk.get('page_number', 1)})
-Relevance: {chunk.get('similarity_score', 0):.3f}
-Content: {chunk.get('text', '')[:800]}
----
-"""
+                for i, ch in enumerate(vector_chunks[:3], 1):
+                    prompt += f"\nDoc {i}: {ch.get('file_name', 'Unknown')} (p{ch.get('page_number',1)}), rel={ch.get('similarity_score',0):.3f}\n"
+                    prompt += f"Excerpt: {ch.get('text','')[:800]}\n---\n"
             else:
-                synthesis_prompt += "No relevant documents found.\n"
+                prompt += "No relevant documents.\n"
 
-            synthesis_prompt += "STRUCTURED DATA:\n"
+            prompt += "\nDATA:\n"
             if sql_results:
-                synthesis_prompt += f"Results: {len(sql_results)} records found\n"
-                synthesis_prompt += f"Sample data: {json.dumps(sql_results[:3], indent=2, ensure_ascii=False)}\n"
+                prompt += f"Rows: {len(sql_results)}\nSample: {json.dumps(sql_results[:3], indent=2)}\n"
             else:
-                synthesis_prompt += "No structured data found.\n"
+                prompt += "No structured data found.\n"
 
-            synthesis_prompt += f"""
-
-COMPREHENSIVE ANALYSIS INSTRUCTIONS:
-1. Provide a direct, comprehensive answer
-2. Synthesize insights from both sources
-3. Cross-reference information where possible
-4. Identify correlations, patterns, and discrepancies
-5. Provide quantitative backing from data and qualitative context from documents
-6. Structure the response for executive consumption
-7. Provide actionable recommendations
-
-RESPONSE STRUCTURE:
-- Executive Summary
-- Document Insights
-- Data Analysis
-- Cross-Analysis
-- Strategic Implications
-- Recommendations
+            prompt += """
+INSTRUCTIONS:
+- Executive summary
+- Document insights
+- Data analysis
+- Cross-analysis (how they support/contradict)
+- Strategic implications
+- Recommended next steps
 """
-            response = self.client.chat.completions.create(
-                model=self.model_name,
+
+            resp = self.client.chat.completions.create(
+                model=self.chat_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a senior strategy consultant synthesizing multiple information sources.",
-                    },
-                    {"role": "user", "content": synthesis_prompt},
+                    {"role": "system", "content": "You synthesize multiple sources for executives."},
+                    {"role": "user", "content": prompt},
                 ],
                 max_tokens=1500,
                 temperature=0.2,
             )
-            return response.choices[0].message.content.strip()
+            return resp.choices[0].message.content.strip()
         except Exception as e:
             logger.error(f"Error synthesizing hybrid results: {str(e)}")
             return f"❌ Error synthesizing results: {str(e)}"
 
 
+# ---------------- Main console app ----------------
+
 class ConversationalRAGSystem:
-    """Main console-based conversational RAG system."""
+    def __init__(self, lm_client: OpenAI, db_config: Dict[str, str] = None) -> None:
+        self.client = lm_client
 
-    def __init__(self, openai_api_key: str = None, db_config: Dict[str, str] = None) -> None:
-        """
-        Initialize system components.
-
-        Note: `openai_api_key` is still accepted and passed to `create_retriever`
-        in case your retriever uses remote embeddings or other services.
-        """
-        # LM Studio client and model
-        self.client = create_lmstudio_client()
-        self.model_name = get_chat_model_name()
-
-        # If your retriever needs an API key (e.g., for embeddings elsewhere), use env or dummy value.
-        self.openai_api_key = openai_api_key or os.getenv("OPENAI_API_KEY", "not-needed")
+        # IMPORTANT: Force the retriever to use Snowflake Arctic embeddings
+        embedding_model_name = os.getenv("EMBEDDING_MODEL", "Snowflake/snowflake-arctic-embed-l")
 
         try:
             self.retriever = create_retriever(
                 db_config=db_config,
-                openai_api_key=self.openai_api_key,  # kept for compatibility with your retriever
-                embedding_model=os.getenv("EMBEDDING_MODEL_NAME", "text-embedding-3-small"),
+                # Pass through the chat client or config if your retriever needs LLM
+                openai_client=self.client,               # if retriever supports dependency injection
+                openai_api_key=LMSTUDIO_API_KEY,         # backward compatibility if needed
+                openai_base_url=LMSTUDIO_BASE_URL,       # helps retriever use LM Studio
+                embedding_model=embedding_model_name,     # <-- key change for your request
             )
+            # Tune search parameters as you like
             self.retriever.update_search_parameters(
                 similarity_threshold=0.15,
                 max_vector_results=10,
@@ -697,9 +588,9 @@ class ConversationalRAGSystem:
             logger.error(f"Failed to initialize retriever: {str(e)}")
             raise
 
-        self.email_processor = EmailProcessor(self.client, self.model_name)
-        self.query_classifier = QueryClassifier(self.client, self.model_name)
-        self.response_analyzer = ResponseAnalyzer(self.client, self.model_name)
+        self.email_processor = EmailProcessor(self.client)
+        self.query_classifier = QueryClassifier(self.client)
+        self.response_analyzer = ResponseAnalyzer(self.client)
         self.context = ConversationContext(history=[])
         self.is_running = True
         self.colors = {
@@ -710,7 +601,7 @@ class ConversationalRAGSystem:
             "reset": "\033[0m",
             "bold": "\033[1m",
         }
-        logger.info("ConversationalRAGSystem initialized (LM Studio client ready)")
+        logger.info("ConversationalRAGSystem initialized (LM Studio + Snowflake embeddings)")
 
     def print_colored(self, text: str, color_key: str = "reset") -> None:
         color = self.colors.get(color_key, self.colors["reset"])
@@ -718,46 +609,32 @@ class ConversationalRAGSystem:
 
     def display_welcome(self) -> None:
         welcome_msg = f"""
-{self.colors['bold']}🤖 CEO RAG Chatbot - Console Interface (LM Studio){self.colors['reset']}
+{self.colors['bold']}🤖 CEO RAG Chatbot - Console Interface{self.colors['reset']}
 {self.colors['system']}{'='*60}{self.colors['reset']}
 
-Welcome! Capabilities:
+Using LM Studio at {LMSTUDIO_BASE_URL}
+Embedding model: Snowflake/snowflake-arctic-embed-l
 
-📄 {self.colors['assistant']}Document Search{self.colors['reset']}
-📊 {self.colors['assistant']}Data Analysis{self.colors['reset']}
-✉️  {self.colors['assistant']}Email Drafting{self.colors['reset']}
-📧 {self.colors['assistant']}Email Analysis{self.colors['reset']}
-💬 {self.colors['assistant']}General Chat{self.colors['reset']}
+📄 Document Search  •  📊 Data Analysis  •  ✉️ Email Drafting  •  📧 Email Analysis  •  💬 General Chat
 
-{self.colors['system']}Special Commands:{self.colors['reset']}
-- {self.colors['user']}'help'{self.colors['reset']}   - Detailed help
-- {self.colors['user']}'status'{self.colors['reset']} - System status
-- {self.colors['user']}'history'{self.colors['reset']}- Conversation history
-- {self.colors['user']}'clear'{self.colors['reset']}  - Clear history
-- {self.colors['user']}'quit'/'exit'{self.colors['reset']} - Exit
-
-{self.colors['system']}{'='*60}{self.colors['reset']}
+Commands: 'help', 'status', 'history', 'clear', 'quit'
 """
         print(welcome_msg)
 
     def display_help(self) -> None:
         help_text = f"""
-{self.colors['bold']}📖 Detailed Help & Examples{self.colors['reset']}
+{self.colors['bold']}📖 Help & Examples{self.colors['reset']}
 {self.colors['system']}{'='*60}{self.colors['reset']}
 
-{self.colors['bold']}📄 Document Search Examples:{self.colors['reset']}
-• "Search for information about quarterly financial results"
+Document Search: "Search marketing strategy in reports"
+Data Analysis:   "Top 10 companies by revenue"
+Email Draft:     "Draft an email to Jane about the Q4 plan"
+Email Analyze:   "Analyze this email: ..."
 
-{self.colors['bold']}📊 Data Analysis Examples:{self.colors['reset']}
-• "Show me the top 10 companies by revenue"
-
-{self.colors['bold']}✉️ Email Drafting Examples:{self.colors['reset']}
-• "Draft an email to John about the quarterly review meeting"
-
-{self.colors['bold']}📧 Email Analysis Examples:{self.colors['reset']}
-• "Analyze this email: [paste email content]"
-
-{self.colors['system']}{'='*60}{self.colors['reset']}
+Status:          "status"
+History:         "history"
+Clear:           "clear"
+Quit:            "quit"
 """
         print(help_text)
 
@@ -769,20 +646,17 @@ Welcome! Capabilities:
 {self.colors['bold']}🖥️ System Status{self.colors['reset']}
 {self.colors['system']}{'='*50}{self.colors['reset']}
 
-{self.colors['bold']}✅ Components:{self.colors['reset']}
-• Retriever: {self.colors['assistant']}Active{self.colors['reset']}
-• LM Studio Client: {self.colors['assistant']}Connected{self.colors['reset']}
-• Model: {self.colors['assistant']}{self.model_name}{self.colors['reset']}
-
-{self.colors['bold']}📊 Available Data Sources:{self.colors['reset']}
+✅ Retriever: Active
+✅ LM Studio: {LMSTUDIO_BASE_URL}
+✅ Embeddings: Snowflake/snowflake-arctic-embed-l
 """
             print(status_text)
             sources_by_type = sources.get("sources_by_type", {})
             for search_type, info in sources_by_type.items():
                 type_display = "📄 Vector Documents" if search_type == "vector" else "🗄️ Data Tables"
                 self.print_colored(f"{type_display}:", "bold")
-                print(f"  Count: {info['count']}")
-                print(f"  Prefixes: {info['prefixes']}")
+                print(f"  Count: {info.get('count', 0)}")
+                print(f"  Prefixes: {info.get('prefixes')}")
                 if info.get("tables"):
                     print("  Available:")
                     for table in info["tables"][:5]:
@@ -799,10 +673,10 @@ Welcome! Capabilities:
             print(f"  Vector Similarity Threshold: {search_params.get('vector_similarity_threshold', 0.7)}")
             print(f"  Max Vector Results: {search_params.get('max_vector_results', 10)}")
             print(f"  Max SQL Results: {search_params.get('max_sql_results', 50)}")
-            print(f"\n{self.colors['bold']}💬 Current Session:{self.colors['reset']}")
-            print(f"  Session Started: {self.context.session_start.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"  Conversation Exchanges: {len(self.context.history)}")
-            print(f"  Last Query Type: {self.context.last_query_type.value if self.context.last_query_type else 'None'}")
+            print(f"\n{self.colors['bold']}💬 Session:{self.colors['reset']}")
+            print(f"  Started: {self.context.session_start.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"  Exchanges: {len(self.context.history)}")
+            print(f"  Last Query: {self.context.last_query_type.value if self.context.last_query_type else 'None'}")
             print(f"\n{self.colors['system']}{'='*50}{self.colors['reset']}")
         except Exception as e:
             self.print_colored(f"❌ Error checking system status: {str(e)}", "error")
@@ -813,142 +687,98 @@ Welcome! Capabilities:
             return
         print(f"\n{self.colors['bold']}📝 Conversation History{self.colors['reset']}")
         print(f"{self.colors['system']}{'='*50}{self.colors['reset']}")
-        for i, exchange in enumerate(self.context.history[-5:], 1):
-            timestamp = datetime.fromisoformat(exchange["timestamp"]).strftime("%H:%M:%S")
-            query_type = exchange["query_type"]
-            print(f"\n{self.colors['system']}{i}. [{timestamp}] ({query_type}){self.colors['reset']}")
-            print(f"{self.colors['user']}User:{self.colors['reset']} {exchange['user_query']}")
-            response = exchange["assistant_response"]
-            if len(response) > 300:
-                response = response[:300] + "..."
-            print(f"{self.colors['assistant']}Assistant:{self.colors['reset']} {response}")
+        for i, ex in enumerate(self.context.history[-5:], 1):
+            timestamp = datetime.fromisoformat(ex["timestamp"]).strftime("%H:%M:%S")
+            qtype = ex["query_type"]
+            print(f"\n{self.colors['system']}{i}. [{timestamp}] ({qtype}){self.colors['reset']}")
+            print(f"{self.colors['user']}User:{self.colors['reset']} {ex['user_query']}")
+            resp = ex["assistant_response"]
+            if len(resp) > 300:
+                resp = resp[:300] + "..."
+            print(f"{self.colors['assistant']}Assistant:{self.colors['reset']} {resp}")
         print(f"\n{self.colors['system']}{'='*50}{self.colors['reset']}")
+
+    # --- Handlers ---
 
     def handle_document_search(self, query: str, extracted_info: Dict[str, Any]) -> str:
         try:
-            self.print_colored("🔍 Searching through documents...", "system")
+            self.print_colored("🔍 Searching documents...", "system")
             result = self.retriever.hybrid_retrieve(query, force_search_type="vector")
             if not result.vector_chunks:
-                return f"""
-🔍 Document Search Results
-
-No relevant information found for your query: "{query}"
-
-Possible reasons:
-• Not present in uploaded documents
-• Try different keywords/phrases
-• Documents may not be processed yet
-"""
+                return (
+                    "🔍 No relevant document sections found for your query.\n"
+                    "Try different keywords or check if documents were indexed."
+                )
             self.print_colored("🧠 Analyzing retrieved documents...", "system")
-            conversation_context = self.context.get_context_string(2)
-            analyzed_response = self.response_analyzer.analyze_document_chunks(
+            analyzed = self.response_analyzer.analyze_document_chunks(
                 query=query,
                 chunks=result.vector_chunks,
-                conversation_context=conversation_context,
+                conversation_context=self.context.get_context_string(2),
             )
-            unique_docs = {chunk['file_name'] for chunk in result.vector_chunks}
-            retrieval_summary = f"""
-🔍 **Document Search Summary:**
-• Found {len(result.vector_chunks)} relevant sections across {len(unique_docs)} documents
-• Search completed in {result.metadata.get('total_retrieval_time', 0):.2f} seconds
-• Sources: {', '.join(sorted(unique_docs))}
-
-📊 **AI Analysis:**
-{analyzed_response}
-"""
-            return retrieval_summary
+            unique_docs = {ch.get('file_name') for ch in result.vector_chunks}
+            return (
+                f"🔍 **Document Search Summary**\n"
+                f"• Sections: {len(result.vector_chunks)} across {len(unique_docs)} documents\n"
+                f"• Time: {result.metadata.get('total_retrieval_time', 0):.2f}s\n\n"
+                f"📊 **AI Analysis**\n{analyzed}"
+            )
         except Exception as e:
             logger.error(f"Error in document search: {str(e)}")
-            return f"❌ Error searching documents: {str(e)}\n\nPlease try again."
+            return f"❌ Error searching documents: {str(e)}"
 
     def handle_data_query(self, query: str, extracted_info: Dict[str, Any]) -> str:
         try:
-            self.print_colored("📊 Analyzing data...", "system")
+            self.print_colored("📊 Running data query...", "system")
             result = self.retriever.hybrid_retrieve(query, force_search_type="sql")
             if not result.sql_results:
-                return f"""
-📊 Data Analysis Results
-
-No data found for your query: "{query}"
-
-Try rephrasing or check available tables.
-"""
-            self.print_colored("🧠 Analyzing query results...", "system")
-            conversation_context = self.context.get_context_string(2)
-            first_result = result.sql_results[0]
-            generated_sql = first_result.get("generated_sql", "SQL query not available")
-            selected_table = first_result.get("selected_table", "Unknown table")
-            analyzed_response = self.response_analyzer.analyze_data_results(
+                return "📊 No data found for your query."
+            self.print_colored("🧠 Analyzing data...", "system")
+            first = result.sql_results[0]
+            generated_sql = first.get("generated_sql", "SQL not available")
+            analyzed = self.response_analyzer.analyze_data_results(
                 query=query,
                 results=result.sql_results,
                 generated_sql=generated_sql,
-                conversation_context=conversation_context,
+                conversation_context=self.context.get_context_string(2),
             )
-            query_summary = f"""
-📊 **Data Query Summary:**
-• Source Table: {selected_table}
-• Records Found: {len(result.sql_results)}
-• Query Time: {result.metadata.get('total_retrieval_time', 0):.2f} seconds
-
-🧠 **AI Analysis:**
-{analyzed_response}
-"""
-            return query_summary
+            return (
+                f"📊 **Data Query Summary**\n"
+                f"• Rows: {len(result.sql_results)}\n"
+                f"• Time: {result.metadata.get('total_retrieval_time', 0):.2f}s\n\n"
+                f"🧠 **AI Analysis**\n{analyzed}"
+            )
         except Exception as e:
             logger.error(f"Error in data query: {str(e)}")
-            return f"❌ Error analyzing data: {str(e)}\n\nPlease try again."
+            return f"❌ Error analyzing data: {str(e)}"
 
     def handle_hybrid_search(self, query: str, extracted_info: Dict[str, Any]) -> str:
         try:
-            self.print_colored("🔍 Performing comprehensive search...", "system")
+            self.print_colored("🔍 Comprehensive search (docs + data)...", "system")
             result = self.retriever.hybrid_retrieve(query)
-            has_vector_results = len(result.vector_chunks) > 0
-            has_sql_results = len(result.sql_results) > 0
-            if not has_vector_results and not has_sql_results:
-                return f"""
-🔍 Comprehensive Search Results
-
-No relevant information found for your query: "{query}"
-"""
-            self.print_colored("🧠 Synthesizing all available information...", "system")
-            conversation_context = self.context.get_context_string(2)
-            synthesized_response = self.response_analyzer.synthesize_hybrid_results(
+            if not result.vector_chunks and not result.sql_results:
+                return "🔍 No results in documents or data."
+            self.print_colored("🧠 Synthesizing results...", "system")
+            synthesized = self.response_analyzer.synthesize_hybrid_results(
                 query=query,
                 vector_chunks=result.vector_chunks,
                 sql_results=result.sql_results,
-                conversation_context=conversation_context,
+                conversation_context=self.context.get_context_string(2),
             )
-            search_summary = f"""
-🔍 **Comprehensive Search Summary:**
-• Document chunks found: {len(result.vector_chunks)}
-• Data records found: {len(result.sql_results)}
-• Total search time: {result.metadata.get('total_retrieval_time', 0):.2f} seconds
-• Search strategy: {result.metadata.get('query_type', 'hybrid')}
-
-🧠 **Comprehensive Analysis:**
-{synthesized_response}
-
-📊 **Search Metadata:**
-• Selected tables: {result.metadata.get('selected_tables', {})}
-• Similarity threshold: {result.metadata.get('similarity_threshold', 0.25)}
-"""
-            return search_summary
+            return (
+                f"🔍 **Comprehensive Search Summary**\n"
+                f"• Doc chunks: {len(result.vector_chunks)}\n"
+                f"• Data rows: {len(result.sql_results)}\n"
+                f"• Time: {result.metadata.get('total_retrieval_time', 0):.2f}s\n\n"
+                f"{synthesized}"
+            )
         except Exception as e:
             logger.error(f"Error in hybrid search: {str(e)}")
-            return f"❌ Error in comprehensive search: {str(e)}\n\nPlease try again."
+            return f"❌ Error in comprehensive search: {str(e)}"
 
     def handle_email_draft(self, query: str, extracted_info: Dict[str, Any]) -> str:
         try:
             self.print_colored("✉️ Drafting email...", "system")
-            context = ""
-            if self.context.history:
-                recent_exchanges = self.context.history[-3:]
-                for exchange in recent_exchanges:
-                    if exchange["query_type"] in [
-                        QueryType.DOCUMENT_SEARCH.value,
-                        QueryType.DATA_QUERY.value,
-                    ]:
-                        context += f"Recent context: {exchange['user_query']}\n"
+            context = self.context.get_context_string(2)
             result = self.email_processor.draft_email(
                 recipient=extracted_info.get("recipient", ""),
                 subject=extracted_info.get("subject", ""),
@@ -957,28 +787,16 @@ No relevant information found for your query: "{query}"
                 context=context,
             )
             if not result["success"]:
-                return f"❌ Error drafting email: {result.get('error', 'Unknown error')}"
-            email_data = result["email"]
-            response_parts = [
-                f"✉️ Email Draft Complete",
-                f"",
-                f"📧 **To:** {email_data['recipient'] or '[Specify recipient]'}",
-                f"📧 **Subject:** {email_data['subject'] or '[Specify subject]'}",
-                f"📧 **Tone:** {email_data['tone'].title()}",
-                f"",
-                f"📝 **Email Content:**",
-                f"{'='*50}",
-                f"{email_data['body']}",
-                f"{'='*50}",
-                f"",
-                f"💡 **Usage Notes:**",
-                f"• Review and customize as needed",
-                f"• Verify recipient email address before sending",
-                f"⏱️ Generated at {result['metadata']['generated_at']}",
-            ]
-            if context:
-                response_parts.append("• Incorporated context from recent conversation")
-            return "\n".join(response_parts)
+                return f"❌ Error drafting email: {result.get('error','unknown')}"
+            email = result["email"]
+            return (
+                "✉️ Email Draft\n\n"
+                f"To: {email['recipient'] or '[Specify]'}\n"
+                f"Subject: {email['subject'] or '[Specify]'}\n"
+                f"Tone: {email['tone']}\n\n"
+                f"{'='*50}\n{email['body']}\n{'='*50}\n"
+                "Notes: Review and customize before sending."
+            )
         except Exception as e:
             logger.error(f"Error drafting email: {str(e)}")
             return f"❌ Error drafting email: {str(e)}"
@@ -991,33 +809,20 @@ No relevant information found for your query: "{query}"
             date_match = re.search(r"(?:date|received):?\s*([^\n]+)", email_content, re.IGNORECASE)
             sender = sender_match.group(1).strip() if sender_match else ""
             received_date = date_match.group(1).strip() if date_match else ""
-            result = self.email_processor.analyze_email(
-                email_content=email_content,
-                sender=sender,
-                received_date=received_date,
-            )
+            result = self.email_processor.analyze_email(email_content, sender, received_date)
             if not result["success"]:
-                return f"❌ Error analyzing email: {result.get('error', 'Unknown error')}"
-            analysis = result["analysis"]
-            urgency_icons = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🟠", "URGENT": "🔴"}
-            urgency_icon = urgency_icons.get(analysis["urgency_level"], "🟡")
-            response_parts = [
-                f"📧 Email Analysis Complete",
-                f"",
-                f"{urgency_icon} **Urgency Level:** {analysis['urgency_level']} (Priority: {analysis['priority_score']}/10)",
-                f"📂 **Category:** {analysis['category'].title()}",
-                f"👤 **From:** {analysis['sender'] or 'Unknown'}",
-                f"📅 **Received:** {analysis['received_date'] or 'Not specified'}",
-                f"📊 **Content:** {analysis['word_count']} words, {analysis['content_length']} characters",
-                f"",
-                f"📋 **Detailed Analysis:**",
-                f"{'='*60}",
-                f"{analysis['full_analysis']}",
-                f"{'='*60}",
-                f"",
-                f"⏱️ Analysis completed at {datetime.fromisoformat(result['metadata']['analyzed_at']).strftime('%H:%M:%S')}",
-            ]
-            return "\n".join(response_parts)
+                return f"❌ Error analyzing email: {result.get('error','unknown')}"
+            a = result["analysis"]
+            icon = {"LOW":"🟢","MEDIUM":"🟡","HIGH":"🟠","URGENT":"🔴"}.get(a["urgency_level"], "🟡")
+            return (
+                "📧 Email Analysis\n\n"
+                f"{icon} Urgency: {a['urgency_level']} (Priority {a['priority_score']}/10)\n"
+                f"Category: {a['category'].title()}\n"
+                f"From: {a['sender'] or 'Unknown'}\n"
+                f"Received: {a['received_date'] or 'Not specified'}\n"
+                f"Length: {a['word_count']} words\n\n"
+                f"{'='*60}\n{a['full_analysis']}\n{'='*60}\n"
+            )
         except Exception as e:
             logger.error(f"Error analyzing email: {str(e)}")
             return f"❌ Error analyzing email: {str(e)}"
@@ -1026,21 +831,19 @@ No relevant information found for your query: "{query}"
         try:
             sources = self.retriever.get_available_sources()
             context_info = (
-                f"\nAvailable capabilities:\n"
+                f"\nCapabilities:\n"
                 f"- {sources.get('sources_by_type', {}).get('vector', {}).get('count', 0)} document sources\n"
                 f"- {sources.get('sources_by_type', {}).get('sql', {}).get('count', 0)} data tables\n"
-                f"- Email drafting and analysis\n"
-                f"- Conversation history: {len(self.context.history)} exchanges\n"
+                f"- Email drafting/analysis\n"
             )
-            conversation_context = self.context.get_context_string(3)
             system_prompt = (
-                "You are a helpful AI assistant for a CEO's RAG chatbot system. "
-                "You have access to document search, data analysis, and email processing."
-                f"\n\n{context_info}\n\nPrevious conversation context:\n{conversation_context}\n\n"
-                "Be professional, helpful, and concise. Guide the user to use capabilities effectively."
+                "You are a helpful assistant for a CEO's RAG system. "
+                "Be concise and helpful."
+                f"\n{context_info}\n"
+                f"Conversation context:\n{self.context.get_context_string(3)}"
             )
-            response = self.client.chat.completions.create(
-                model=self.model_name,
+            resp = self.client.chat.completions.create(
+                model=os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b"),
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query},
@@ -1048,76 +851,58 @@ No relevant information found for your query: "{query}"
                 max_tokens=500,
                 temperature=0.7,
             )
-            return response.choices[0].message.content.strip()
+            return resp.choices[0].message.content.strip()
         except Exception as e:
             logger.error(f"Error in general chat: {str(e)}")
-            return (
-                "I'm here to help! You can ask me to search documents, analyze data, draft emails, or just chat. "
-                "What would you like to do?"
-            )
+            return "I can search documents, analyze data, draft emails, or chat. What would you like to do?"
 
     def _should_attempt_hybrid_search(self, query: str, initial_response: str) -> bool:
-        hybrid_indicators = [
-            "compare", "analysis", "comprehensive", "complete picture", "full report",
-            "detailed", "thorough", "both", "also", "relationship", "correlation",
-            "trend", "pattern",
-        ]
-        query_lower = query.lower()
-        has_hybrid_indicators = any(ind in query_lower for ind in hybrid_indicators)
-        response_lower = initial_response.lower()
-        suggests_limited = any(
-            p in response_lower for p in ["couldn't find", "no data", "not available", "no relevant", "didn't find"]
-        )
-        business_terms = [
-            "performance", "revenue", "profit", "financial", "quarterly", "annual",
-            "growth", "market", "strategy", "budget", "forecast",
-        ]
-        has_business_context = any(term in query_lower for term in business_terms)
-        return has_hybrid_indicators or suggests_limited or has_business_context
+        indicators = ["compare", "analysis", "comprehensive", "relationship", "trend", "pattern"]
+        ql = query.lower()
+        has_indicators = any(x in ql for x in indicators)
+        limited = any(x in initial_response.lower() for x in ["no data", "no results", "didn't find"])
+        biz_terms = ["performance", "revenue", "profit", "financial", "quarter", "strategy", "budget"]
+        has_biz = any(x in ql for x in biz_terms)
+        return has_indicators or limited or has_biz
 
     def process_query(self, query: str) -> str:
-        start_time = time.time()
+        start = time.time()
         try:
-            context_str = self.context.get_context_string(3)
-            query_type, extracted_info = self.query_classifier.classify_query(query, context_str)
-            logger.info(f"Query classified as: {query_type.value}")
+            qtype, extracted = self.query_classifier.classify_query(query, self.context.get_context_string(3))
+            logger.info(f"Query classified as: {qtype.value}")
 
-            if query_type == QueryType.DOCUMENT_SEARCH:
-                response = self.handle_document_search(query, extracted_info)
-            elif query_type == QueryType.DATA_QUERY:
-                response = self.handle_data_query(query, extracted_info)
-            elif query_type == QueryType.EMAIL_DRAFT:
-                response = self.handle_email_draft(query, extracted_info)
-            elif query_type == QueryType.EMAIL_ANALYZE:
-                response = self.handle_email_analysis(query, extracted_info)
-            elif query_type == QueryType.HELP:
+            if qtype == QueryType.DOCUMENT_SEARCH:
+                resp = self.handle_document_search(query, extracted)
+            elif qtype == QueryType.DATA_QUERY:
+                resp = self.handle_data_query(query, extracted)
+            elif qtype == QueryType.EMAIL_DRAFT:
+                resp = self.handle_email_draft(query, extracted)
+            elif qtype == QueryType.EMAIL_ANALYZE:
+                resp = self.handle_email_analysis(query, extracted)
+            elif qtype == QueryType.HELP:
                 self.display_help()
                 return ""
-            elif query_type == QueryType.SYSTEM_STATUS:
+            elif qtype == QueryType.SYSTEM_STATUS:
                 self.display_system_status()
                 return ""
             else:
-                response = self.handle_general_chat(query)
+                resp = self.handle_general_chat(query)
 
-            if query_type in [QueryType.DOCUMENT_SEARCH, QueryType.DATA_QUERY]:
-                if self._should_attempt_hybrid_search(query, response):
-                    self.print_colored("🔄 Attempting comprehensive search for better results...", "system")
-                    hybrid_response = self.handle_hybrid_search(query, extracted_info)
-                    if len(hybrid_response) > len(response):
-                        response = hybrid_response
+            if qtype in [QueryType.DOCUMENT_SEARCH, QueryType.DATA_QUERY]:
+                if self._should_attempt_hybrid_search(query, resp):
+                    self.print_colored("🔄 Trying comprehensive (hybrid) search...", "system")
+                    hybrid = self.handle_hybrid_search(query, extracted)
+                    if len(hybrid) > len(resp):
+                        resp = hybrid
 
-            processing_time = time.time() - start_time
-            metadata = {"processing_time": processing_time, "query_type": query_type.value, "extracted_info": extracted_info}
-            self.context.add_exchange(query, response, query_type, metadata)
-            return response
+            elapsed = time.time() - start
+            self.context.add_exchange(query, resp, qtype, {"processing_time": elapsed})
+            return resp
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
-            error_response = (
-                f"❌ I encountered an error processing your request: {str(e)}\n\n"
-                "Please try again or type 'help' for assistance."
-            )
-            self.context.add_exchange(query, error_response, QueryType.GENERAL_CHAT, {"error": str(e)})
-            return error_response
+            err = f"❌ Error: {str(e)}"
+            self.context.add_exchange(query, err, QueryType.GENERAL_CHAT, {"error": str(e)})
+            return err
 
     def run_console_loop(self) -> None:
         print("\n")
@@ -1128,30 +913,28 @@ No relevant information found for your query: "{query}"
                 user_input = input().strip()
                 if not user_input:
                     continue
-                user_lower = user_input.lower()
-                if user_lower in ["quit", "exit", "q"]:
-                    self.print_colored("👋 Goodbye! Thank you for using the CEO RAG Chatbot.", "system")
+                low = user_input.lower()
+                if low in ["quit", "exit", "q"]:
+                    self.print_colored("👋 Goodbye!", "system")
                     self.is_running = False
                     break
-                elif user_lower == "help":
-                    self.display_help()
-                    continue
-                elif user_lower == "status":
-                    self.display_system_status()
-                    continue
-                elif user_lower == "history":
-                    self.display_conversation_history()
-                    continue
-                elif user_lower == "clear":
+                elif low == "help":
+                    self.display_help(); continue
+                elif low == "status":
+                    self.display_system_status(); continue
+                elif low == "history":
+                    self.display_conversation_history(); continue
+                elif low == "clear":
                     self.context.history.clear()
-                    self.print_colored("🗑️ Conversation history cleared.", "system")
+                    self.print_colored("🗑️ History cleared.", "system")
                     continue
-                print(f"\n{self.colors['assistant']}Assistant: {self.colors['reset']}")
+
+                print(f"\n{self.colors['assistant']}Assistant:{self.colors['reset']}")
                 response = self.process_query(user_input)
                 if response:
                     print(response)
             except KeyboardInterrupt:
-                self.print_colored("\n\n👋 Goodbye! (Interrupted by user)", "system")
+                self.print_colored("\n\n👋 Goodbye! (Interrupted)", "system")
                 self.is_running = False
                 break
             except EOFError:
@@ -1160,7 +943,7 @@ No relevant information found for your query: "{query}"
                 break
             except Exception as e:
                 self.print_colored(f"❌ Unexpected error: {str(e)}", "error")
-                logger.error(f"Unexpected error in console loop: {str(e)}")
+                logger.error(f"Unexpected error: {str(e)}")
 
     def close(self) -> None:
         try:
@@ -1170,14 +953,12 @@ No relevant information found for your query: "{query}"
         logger.info("ConversationalRAGSystem closed")
 
 
-def create_console_rag_system(
-    openai_api_key: str = None, db_config: Dict[str, str] = None
-) -> ConversationalRAGSystem:
-    return ConversationalRAGSystem(openai_api_key=openai_api_key, db_config=db_config)
+def create_console_rag_system(db_config: Dict[str, str] = None) -> ConversationalRAGSystem:
+    return ConversationalRAGSystem(lm_client=client, db_config=db_config)
 
 
 def main() -> int:
-    print("🚀 Starting CEO RAG Chatbot Console Interface (LM Studio)...")
+    print("🚀 Starting CEO RAG Chatbot (LM Studio)...")
     log_dir = Path("data/logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     try:
@@ -1198,6 +979,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    import sys as _sys
-    _sys.exit(main())
+    sys.exit(main())
 
