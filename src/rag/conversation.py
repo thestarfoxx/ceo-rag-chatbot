@@ -46,7 +46,7 @@ def create_lmstudio_client() -> OpenAI:
       LMSTUDIO_BASE_URL (default: http://localhost:1234/v1)
       LMSTUDIO_API_KEY  (default: not-needed)
     """
-    base_url = os.getenv("LMSTUDIO_BASE_URL", "http://192.168.0.14:1234")
+    base_url = os.getenv("LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
     api_key = os.getenv("LMSTUDIO_API_KEY", "not-needed")
     return OpenAI(base_url=base_url, api_key=api_key)
 
@@ -686,7 +686,7 @@ class ConversationalRAGSystem:
             self.retriever = create_retriever(
                 db_config=db_config,
                 openai_api_key=self.openai_api_key,  # kept for compatibility with your retriever
-                embedding_model=os.getenv("EMBEDDING_MODEL_NAME", "text-embedding-3-small"),
+                embedding_model=os.getenv("EMBEDDING_MODEL_NAME", "Snowflake/snowflake-arctic-embed-"),
             )
             self.retriever.update_search_parameters(
                 similarity_threshold=0.15,
