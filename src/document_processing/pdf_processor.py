@@ -2,19 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Rebuild PDF embeddings for ALL PDFs in a given directory.
+Rebuild embeddings for ALL PDFs in a directory.
 
-Steps:
-1) Scan directory for *.pdf
-2) For each PDF:
-   - Compute hash
-   - Upsert pdf_documents row using this hash
-   - Drop and recreate its vector table (fresh rebuild)
-   - Extract text by page (pdfplumber)
-   - Chunk (char-based with overlap)
-   - Embed with Snowflake Arctic (SentenceTransformer)
-   - Insert all chunks into the per-PDF vector table
-   - Mark status=completed (and store vector_rows in metadata)
+- Upsert pdf_documents by file_hash (processing -> completed)
+- Drop and recreate per-PDF vectors table
+- Extract text, chunk, embed (Snowflake Arctic), insert into pgvector
 """
 
 import os
@@ -23,16 +15,16 @@ import json
 import hashlib
 import logging
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 import pdfplumber
 from sqlalchemy import create_engine, text
 from sentence_transformers import SentenceTransformer
 
-# -----------------------------------------
-# CONFIG
-# -----------------------------------------
-PDF_DIR = os.getenv("PDF_DIR", "data/documents/pdfs")  # change if needed
+# ---------------------------
+# Config
+# ---------------------------
+PDF_DIR = os.getenv("PDF_DIR", "data/documents/pdfs")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
@@ -46,15 +38,15 @@ VECTOR_PREFIX = "vectors_doc_"
 
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1400"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "200"))
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "32"))
+BATCH = int(os.getenv("BATCH", "32"))
 
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("pdf_rebuilder")
 
-# -----------------------------------------
-# HELPERS
-# -----------------------------------------
 
+# ---------------------------
+# Helpers
+# ---------------------------
 def md5_file(path: Path) -> str:
     h = hashlib.md5()
     with path.open("rb") as f:
@@ -72,6 +64,8 @@ def chunk_text(txt: str, size: int, overlap: int) -> List[str]:
     n = len(txt)
     chunks: List[str] = []
     start = 0
+    if n == 0:
+        return chunks
     while start < n:
         end = min(n, start + size)
         piece = txt[start:end].strip()
@@ -79,9 +73,7 @@ def chunk_text(txt: str, size: int, overlap: int) -> List[str]:
             chunks.append(piece)
         if end >= n:
             break
-        # prevent infinite loop if overlap >= size
-        next_start = end - overlap
-        start = next_start if next_start > start else end
+        start = max(end - overlap, end) if overlap >= size else end - overlap
     return chunks
 
 def extract_pages(pdf_path: Path) -> List[str]:
@@ -101,12 +93,14 @@ def ensure_pgvector(conn):
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         logger.info("pgvector extension OK.")
     except Exception as e:
-        logger.warning(f"Could not ensure pgvector: {e}")
+        logger.warning(f"Could not ensure pgvector extension: {e}")
 
-def upsert_pdf(conn, *, file_name: str, file_path: str, file_hash: str,
-               file_size: int, total_pages: int, metadata_json: str,
-               embedding_model: str, vector_table: str) -> int:
-    # IMPORTANT: no ::jsonb on bound params; let Postgres/column type handle it
+def upsert_pdf(conn, *, file_name: str, file_path: str, file_hash: str, file_size: int,
+               total_pages: int, metadata_json: str, embedding_model: str, vector_table_name: str) -> int:
+    """
+    Upsert pdf_documents by file_hash. Use consistent :param style everywhere.
+    Set processing_status='processing' on every rebuild.
+    """
     sql = text("""
         INSERT INTO pdf_documents
             (file_name, file_path, file_hash, file_size, total_pages,
@@ -114,8 +108,8 @@ def upsert_pdf(conn, *, file_name: str, file_path: str, file_hash: str,
              vector_table_name)
         VALUES
             (:file_name, :file_path, :file_hash, :file_size, :total_pages,
-             'pdfplumber', :metadata, 'processing', :embedding_model,
-             :vector_table)
+             'pdfplumber', CAST(:metadata AS JSONB), 'processing', :embedding_model,
+             :vector_table_name)
         ON CONFLICT (file_hash) DO UPDATE SET
             file_name = EXCLUDED.file_name,
             file_path = EXCLUDED.file_path,
@@ -125,7 +119,7 @@ def upsert_pdf(conn, *, file_name: str, file_path: str, file_hash: str,
             metadata = EXCLUDED.metadata,
             processing_status = 'processing',
             embedding_model = EXCLUDED.embedding_model,
-            vector_table_name = EXCLUDED.vector_table
+            vector_table_name = EXCLUDED.vector_table_name
         RETURNING id
     """)
     row = conn.execute(sql, {
@@ -134,9 +128,9 @@ def upsert_pdf(conn, *, file_name: str, file_path: str, file_hash: str,
         "file_hash": file_hash,
         "file_size": file_size,
         "total_pages": total_pages,
-        "metadata": metadata_json,          # stringified JSON
+        "metadata": metadata_json,
         "embedding_model": embedding_model,
-        "vector_table": vector_table
+        "vector_table_name": vector_table_name
     }).fetchone()
     return int(row[0])
 
@@ -157,24 +151,23 @@ def drop_and_create_vector_table(conn, table_name: str, dim: int):
     """))
     logger.info(f'Recreated table "{table_name}" (vector dim {dim}).')
 
-def insert_chunk(conn, table_name: str, *, text_chunk: str, tokens: int,
-                 page_no: int, metadata_obj: Dict[str, Any],
-                 embedding_str: str, embedding_model: str):
+def insert_chunk(conn, table_name: str, *, text_chunk: str, tokens: int, page_no: int,
+                 chunk_type: str, metadata_obj: Dict[str, Any], embedding_str: str, embedding_model: str):
     """
-    Insert one chunk. 'embedding_str' must be pgvector literal: "[0.1,0.2,...]".
+    Insert one chunk. Param name is embedding_str (matches caller).
     """
     sql = text(f"""
         INSERT INTO "{table_name}"
-            (chunk_text, chunk_tokens, page_number, chunk_type, metadata,
-             embedding, embedding_model)
+            (chunk_text, chunk_tokens, page_number, chunk_type, metadata, embedding, embedding_model)
         VALUES
-            (:chunk_text, :chunk_tokens, :page_number, 'content', :metadata,
+            (:chunk_text, :chunk_tokens, :page_number, :chunk_type, CAST(:metadata AS JSONB),
              :embedding::vector, :embedding_model)
     """)
     conn.execute(sql, {
         "chunk_text": text_chunk,
         "chunk_tokens": tokens,
         "page_number": page_no,
+        "chunk_type": chunk_type,
         "metadata": json.dumps(metadata_obj or {}),
         "embedding": embedding_str,
         "embedding_model": embedding_model
@@ -188,10 +181,10 @@ def mark_completed(conn, pdf_id: int, total_chunks: int):
         WHERE id = :id
     """), {"id": pdf_id, "rows": total_chunks})
 
-# -----------------------------------------
-# MAIN PROCESSING
-# -----------------------------------------
 
+# ---------------------------
+# Main processing
+# ---------------------------
 def process_pdf(engine, embedder: SentenceTransformer, pdf_path: Path):
     logger.info(f"Processing: {pdf_path.name}")
 
@@ -201,7 +194,7 @@ def process_pdf(engine, embedder: SentenceTransformer, pdf_path: Path):
     pages = extract_pages(pdf_path)
     total_pages = len(pages)
 
-    vector_table = f'{VECTOR_PREFIX}{slugify(pdf_path.name)}'
+    vector_table = f"{VECTOR_PREFIX}{slugify(pdf_path.name)}"
     embed_dim = embedder.get_sentence_embedding_dimension()
 
     metadata = {
@@ -210,7 +203,7 @@ def process_pdf(engine, embedder: SentenceTransformer, pdf_path: Path):
         "file_name": pdf_path.name
     }
 
-    # Upsert doc and recreate vectors table
+    # Upsert doc row and recreate vector table
     with engine.begin() as conn:
         ensure_pgvector(conn)
         pdf_id = upsert_pdf(
@@ -222,42 +215,43 @@ def process_pdf(engine, embedder: SentenceTransformer, pdf_path: Path):
             total_pages=total_pages,
             metadata_json=json.dumps(metadata),
             embedding_model=EMBED_MODEL,
-            vector_table=vector_table
+            vector_table_name=vector_table
         )
         drop_and_create_vector_table(conn, vector_table, embed_dim)
 
     # Build chunks
-    chunks: List[tuple[int, str]] = []
+    chunks: List[Tuple[int, str]] = []
     for pno, ptxt in enumerate(pages, start=1):
         for ch in chunk_text(ptxt, CHUNK_SIZE, CHUNK_OVERLAP):
             chunks.append((pno, ch))
     logger.info(f"Total chunks: {len(chunks)}")
 
-    # Embed & insert
+    # Embed and insert
     inserted = 0
     with engine.begin() as conn:
-        for i in range(0, len(chunks), BATCH_SIZE):
-            batch = chunks[i:i+BATCH_SIZE]
+        for i in range(0, len(chunks), BATCH):
+            batch = chunks[i:i + BATCH]
             texts = [c[1] for c in batch]
             embs = embedder.encode(texts, convert_to_numpy=True)
             for (page_no, text_chunk), emb in zip(batch, embs):
-                # build pgvector literal
                 embedding_str = "[" + ",".join(str(float(x)) for x in emb.tolist()) + "]"
-                tokens = len(text_chunk.split())  # simple approximation
+                tokens = len(text_chunk.split())
                 insert_chunk(
                     conn,
                     vector_table,
                     text_chunk=text_chunk,
                     tokens=tokens,
                     page_no=page_no,
+                    chunk_type="content",
                     metadata_obj={"file": pdf_path.name, "source_type": "pdf_vector"},
-                    embedding_str=embedding_str,          # <-- name matches function
+                    embedding_str=embedding_str,          # match function param name
                     embedding_model=EMBED_MODEL
                 )
                 inserted += 1
+
         mark_completed(conn, pdf_id, inserted)
 
-    logger.info(f'Completed {pdf_path.name}: {inserted} chunks inserted into "{vector_table}".')
+    logger.info(f'Completed "{pdf_path.name}": {inserted} chunks inserted into "{vector_table}".')
 
 def main():
     logger.info(f"Loading embedding model: {EMBED_MODEL}")
@@ -268,8 +262,8 @@ def main():
 
     pdf_dir = Path(PDF_DIR)
     pdf_dir.mkdir(parents=True, exist_ok=True)
+    pdfs = sorted([p for p in pdf_dir.glob("*.pdf") if p.is_file()])
 
-    pdfs = [p for p in sorted(pdf_dir.glob("*.pdf")) if p.is_file()]
     if not pdfs:
         logger.info("No PDF files found.")
         return
