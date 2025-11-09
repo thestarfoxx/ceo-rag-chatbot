@@ -107,34 +107,37 @@ class PDFProcessorSeparateTables:
         }
     
     def _ensure_database_exists(self):
-        """Create database if it doesn't exist."""
+        """Create database if it doesn't exist (uses AUTOCOMMIT for CREATE DATABASE)."""
         try:
             temp_config = self.db_config.copy()
             temp_config['database'] = 'postgres'
             
             temp_engine = self._create_engine_from_config(temp_config)
-            
+
+            # Check if DB exists in a normal transaction
+            exists = False
             with temp_engine.connect() as conn:
-                result = conn.execute(text("""
-                    SELECT 1 FROM pg_database WHERE datname = :db_name
-                """), {"db_name": self.db_config['database']})
-                
-                if not result.fetchone():
-                    conn.execute(text("COMMIT"))
-                    conn.execute(text(f"CREATE DATABASE {self.db_config['database']}"))
-                    logger.info(f"Created database: {self.db_config['database']}")
+                result = conn.execute(
+                    text("SELECT 1 FROM pg_database WHERE datname = :db_name"),
+                    {"db_name": self.db_config['database']}
+                )
+                exists = bool(result.fetchone())
+
+            # CREATE DATABASE must run outside a transaction
+            if not exists:
+                with temp_engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+                    conn.execute(text(f'CREATE DATABASE "{self.db_config["database"]}"'))
+                    logger.info(f'Created database: {self.db_config["database"]}')
             
             temp_engine.dispose()
-            
         except Exception as e:
             logger.warning(f"Could not create database (may already exist): {str(e)}")
     
     def _enable_pgvector(self):
-        """Enable pgvector extension in the database."""
+        """Enable pgvector extension in the database (transactional)."""
         try:
-            with self.engine.connect() as conn:
+            with self.engine.begin() as conn:
                 conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-                conn.commit()
                 logger.info("pgvector extension enabled")
         except Exception as e:
             logger.error(f"Could not enable pgvector extension: {str(e)}")
@@ -163,25 +166,16 @@ class PDFProcessorSeparateTables:
         Returns:
             Sanitized table name with 'vectors_' prefix
         """
-        # Remove file extension and convert to lowercase
         name = Path(filename).stem.lower()
-        
-        # Replace special characters with underscores
         name = re.sub(r'[^a-z0-9_]', '_', name)
-        
-        # Ensure it starts with a letter or underscore
+        if not name:
+            name = "doc"
         if name[0].isdigit():
             name = f"doc_{name}"
-        
-        # Add vectors prefix
         table_name = f"vectors_{name}"
-        
-        # Limit length to 63 characters (PostgreSQL limit)
         if len(table_name) > 63:
-            # Create hash suffix to ensure uniqueness
             hash_suffix = hashlib.md5(filename.encode()).hexdigest()[:8]
             table_name = f"vectors_{name[:46]}_{hash_suffix}"
-        
         return table_name
     
     def _create_documents_table(self):
@@ -206,21 +200,12 @@ class PDFProcessorSeparateTables:
             vector_table_created BOOLEAN DEFAULT FALSE
         )
         """
-        
-        with self.engine.connect() as conn:
+        with self.engine.begin() as conn:
             conn.execute(text(create_sql))
-            conn.commit()
     
     def _create_vector_table_for_pdf(self, vector_table_name: str, document_id: int) -> bool:
         """
         Create a separate vector table for a specific PDF.
-        
-        Args:
-            vector_table_name: Name of the vector table to create
-            document_id: Document ID for reference
-            
-        Returns:
-            True if successful, False otherwise
         """
         try:
             create_sql = f"""
@@ -239,40 +224,35 @@ class PDFProcessorSeparateTables:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(document_id, chunk_hash)
             );
-            
-            -- Create index for vector similarity search
+
             CREATE INDEX IF NOT EXISTS "{vector_table_name}_embedding_idx" 
             ON "{vector_table_name}" USING ivfflat (embedding vector_cosine_ops) 
             WITH (lists = 100);
-            
-            -- Create other useful indexes
+
             CREATE INDEX IF NOT EXISTS "{vector_table_name}_document_id_idx" 
             ON "{vector_table_name}" (document_id);
-            
+
             CREATE INDEX IF NOT EXISTS "{vector_table_name}_page_number_idx" 
             ON "{vector_table_name}" (page_number);
-            
+
             CREATE INDEX IF NOT EXISTS "{vector_table_name}_chunk_index_idx" 
             ON "{vector_table_name}" (chunk_index);
             """
-            
-            with self.engine.connect() as conn:
+            with self.engine.begin() as conn:
                 conn.execute(text(create_sql))
-                conn.commit()
-                
+
+            # Mark vector table created
+            with self.engine.begin() as conn:
+                conn.execute(
+                    text("""
+                        UPDATE pdf_documents 
+                        SET vector_table_created = TRUE 
+                        WHERE id = :doc_id
+                    """),
+                    {"doc_id": document_id}
+                )
             logger.info(f"Created vector table: {vector_table_name}")
-            
-            # Update document record to mark vector table as created
-            with self.engine.connect() as conn:
-                conn.execute(text("""
-                    UPDATE pdf_documents 
-                    SET vector_table_created = TRUE 
-                    WHERE id = :doc_id
-                """), {"doc_id": document_id})
-                conn.commit()
-            
             return True
-            
         except Exception as e:
             logger.error(f"Error creating vector table {vector_table_name}: {str(e)}")
             return False
@@ -293,7 +273,6 @@ class PDFProcessorSeparateTables:
                     SELECT id, vector_table_name FROM pdf_documents 
                     WHERE file_hash = :file_hash AND processing_status = 'completed'
                 """), {"file_hash": file_hash})
-                
                 row = result.fetchone()
                 return (row[0], row[1]) if row else None
         except Exception as e:
@@ -304,7 +283,6 @@ class PDFProcessorSeparateTables:
         """Extract text using PyMuPDF (most reliable for complex PDFs)."""
         pages_data = []
         metadata = {}
-        
         try:
             doc = fitz.open(file_path)
             metadata = {
@@ -317,19 +295,15 @@ class PDFProcessorSeparateTables:
                 'creation_date': doc.metadata.get('creationDate', ''),
                 'modification_date': doc.metadata.get('modDate', ''),
             }
-            
             for page_num in range(doc.page_count):
                 page = doc[page_num]
                 text = page.get_text()
-                
                 page_data = {
                     'page_number': page_num + 1,
                     'text': text,
                     'char_count': len(text),
                     'word_count': len(text.split()) if text else 0,
                 }
-                
-                # Try to extract table data if present
                 try:
                     tables = page.find_tables()
                     if tables:
@@ -337,22 +311,17 @@ class PDFProcessorSeparateTables:
                         page_data['table_count'] = len(tables)
                 except:
                     pass
-                
                 pages_data.append(page_data)
-            
             doc.close()
-            
         except Exception as e:
             logger.error(f"PyMuPDF extraction failed: {str(e)}")
             raise
-        
         return pages_data, metadata
     
     def _extract_text_pdfplumber(self, file_path: str) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """Extract text using pdfplumber (good for tables and layout)."""
         pages_data = []
         metadata = {}
-        
         try:
             with pdfplumber.open(file_path) as pdf:
                 metadata = {
@@ -364,22 +333,18 @@ class PDFProcessorSeparateTables:
                     'producer': pdf.metadata.get('Producer', ''),
                     'creation_date': pdf.metadata.get('CreationDate', ''),
                 }
-                
                 for page_num, page in enumerate(pdf.pages):
                     text = page.extract_text() or ""
                     tables = page.extract_tables()
                     table_text = ""
-                    
                     if tables:
                         for table in tables:
                             for row in table:
                                 if row:
                                     table_text += " | ".join([str(cell) if cell else "" for cell in row]) + "\n"
-                    
                     combined_text = text
                     if table_text:
                         combined_text += "\n\nTABLE DATA:\n" + table_text
-                    
                     page_data = {
                         'page_number': page_num + 1,
                         'text': combined_text,
@@ -390,24 +355,19 @@ class PDFProcessorSeparateTables:
                         'has_tables': len(tables) > 0,
                         'table_count': len(tables),
                     }
-                    
                     pages_data.append(page_data)
-                    
         except Exception as e:
             logger.error(f"pdfplumber extraction failed: {str(e)}")
             raise
-        
         return pages_data, metadata
     
     def _extract_text_pypdf2(self, file_path: str) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """Extract text using PyPDF2 (fallback method)."""
         pages_data = []
         metadata = {}
-        
         try:
             with open(file_path, 'rb') as file:
                 pdf_reader = PyPDF2.PdfReader(file)
-                
                 if pdf_reader.metadata:
                     metadata = {
                         'total_pages': len(pdf_reader.pages),
@@ -419,26 +379,21 @@ class PDFProcessorSeparateTables:
                     }
                 else:
                     metadata = {'total_pages': len(pdf_reader.pages)}
-                
                 for page_num, page in enumerate(pdf_reader.pages):
                     text = page.extract_text()
-                    
                     page_data = {
                         'page_number': page_num + 1,
                         'text': text,
                         'char_count': len(text),
                         'word_count': len(text.split()) if text else 0,
                     }
-                    
                     pages_data.append(page_data)
-                    
         except Exception as e:
             logger.error(f"PyPDF2 extraction failed: {str(e)}")
             raise
-        
         return pages_data, metadata
     
-    def extract_text_from_pdf(self, file_path: str, method: str = 'auto') -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    def extract_text_from_pdf(self, file_path: str, method: str = 'auto') -> Tuple[List[Dict[str, Any]], Dict[str, Any], str]:
         """Extract text from PDF using specified or best available method."""
         if method == 'auto':
             methods = ['pdfplumber', 'pymupdf', 'pypdf2']
@@ -476,28 +431,17 @@ class PDFProcessorSeparateTables:
         """Clean and normalize extracted text."""
         if not text:
             return ""
-        
-        # Remove excessive whitespace and normalize line breaks
         text = re.sub(r'\n\s*\n', '\n\n', text)
         text = re.sub(r'[ \t]+', ' ', text)
         text = re.sub(r'\n ', '\n', text)
-        
-        # Remove common PDF artifacts
         text = re.sub(r'\f', '\n', text)
         text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]', '', text)
-        
-        # Fix common OCR errors and formatting issues
         text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
         text = re.sub(r'([a-zA-Z])(\d)', r'\1 \2', text)
         text = re.sub(r'(\d)([a-zA-Z])', r'\1 \2', text)
-        
-        # Fix hyphenated words split across lines
         text = re.sub(r'(\w)-\s*\n\s*(\w)', r'\1\2', text)
-        
-        # Clean up extra spaces
         text = re.sub(r' +', ' ', text)
         text = text.strip()
-        
         return text
     
     def _count_tokens(self, text: str) -> int:
@@ -525,11 +469,9 @@ class PDFProcessorSeparateTables:
                     chunks.append(current_chunk.strip())
                     current_chunk = ""
                     current_tokens = 0
-                
                 words = sentence.split()
                 temp_chunk = ""
                 temp_tokens = 0
-                
                 for word in words:
                     word_tokens = self._count_tokens(word + " ")
                     if temp_tokens + word_tokens > max_tokens and temp_chunk:
@@ -539,20 +481,16 @@ class PDFProcessorSeparateTables:
                     else:
                         temp_chunk += word + " "
                         temp_tokens += word_tokens
-                
                 if temp_chunk.strip():
                     current_chunk = temp_chunk
                     current_tokens = temp_tokens
-                    
             else:
                 if current_tokens + sentence_tokens > max_tokens and current_chunk:
                     chunks.append(current_chunk.strip())
-                    
                     if overlap_tokens > 0 and chunks:
                         prev_words = current_chunk.split()
                         overlap_text = ""
                         overlap_count = 0
-                        
                         for word in reversed(prev_words):
                             word_tokens = self._count_tokens(word + " ")
                             if overlap_count + word_tokens <= overlap_tokens:
@@ -560,7 +498,6 @@ class PDFProcessorSeparateTables:
                                 overlap_count += word_tokens
                             else:
                                 break
-                        
                         current_chunk = overlap_text + sentence + " "
                         current_tokens = self._count_tokens(current_chunk)
                     else:
@@ -581,7 +518,6 @@ class PDFProcessorSeparateTables:
             return []
         
         paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
-        
         if not paragraphs:
             return self._chunk_text_by_sentences(text, max_tokens, overlap_tokens)
         
@@ -591,20 +527,16 @@ class PDFProcessorSeparateTables:
         
         for paragraph in paragraphs:
             paragraph_tokens = self._count_tokens(paragraph)
-            
             if paragraph_tokens > max_tokens:
                 if current_chunk:
                     chunks.append(current_chunk.strip())
                     current_chunk = ""
                     current_tokens = 0
-                
                 para_chunks = self._chunk_text_by_sentences(paragraph, max_tokens, overlap_tokens)
                 chunks.extend(para_chunks)
-                
             else:
                 if current_tokens + paragraph_tokens > max_tokens and current_chunk:
                     chunks.append(current_chunk.strip())
-                    
                     if overlap_tokens > 0:
                         prev_sentences = sent_tokenize(current_chunk)
                         if prev_sentences:
@@ -675,14 +607,12 @@ class PDFProcessorSeparateTables:
                 text_chunks = self._chunk_text_by_sentences(full_text, max_tokens, overlap_tokens)
             
             for i, chunk_text in enumerate(text_chunks):
-                chunk_start = full_text.find(chunk_text[:50])
+                chunk_start = full_text.find(chunk_text[:50] if len(chunk_text) >= 50 else chunk_text)
                 primary_page = 1
-                
                 for page_num, (start, end) in page_boundaries.items():
                     if start <= chunk_start < end:
                         primary_page = page_num
                         break
-                
                 chunk = {
                     'text': chunk_text,
                     'tokens': self._count_tokens(chunk_text),
@@ -702,18 +632,10 @@ class PDFProcessorSeparateTables:
     def _generate_embedding(self, text: str) -> Optional[List[float]]:
         """
         Generate embedding for text using Snowflake Arctic Embed model.
-        
-        Args:
-            text: Text to generate embedding for
-            
-        Returns:
-            List of floats representing the embedding, or None if failed
         """
         try:
-            # For document chunks, don't use any special prompt
             embedding = self.embedding_model.encode(text, convert_to_numpy=True)
             return embedding.tolist()
-            
         except Exception as e:
             logger.error(f"Error generating embedding: {str(e)}")
             return None
@@ -721,43 +643,28 @@ class PDFProcessorSeparateTables:
     def _batch_generate_embeddings(self, texts: List[str], batch_size: int = 32) -> List[Optional[List[float]]]:
         """
         Generate embeddings for multiple texts in batches using Snowflake Arctic Embed.
-        
-        Args:
-            texts: List of texts to embed
-            batch_size: Number of texts to process at once
-            
-        Returns:
-            List of embeddings (or None for failed embeddings)
         """
         embeddings = []
-        
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i + batch_size]
             logger.info(f"Generating embeddings for batch {i//batch_size + 1}/{(len(texts) + batch_size - 1)//batch_size}")
-            
             try:
-                # Generate embeddings for the batch
                 batch_embeddings = self.embedding_model.encode(
                     batch, 
                     convert_to_numpy=True,
                     show_progress_bar=False
                 )
-                
-                # Convert numpy arrays to lists
                 for emb in batch_embeddings:
                     embeddings.append(emb.tolist())
-                
             except Exception as e:
                 logger.error(f"Error generating batch embeddings: {str(e)}")
                 embeddings.extend([None] * len(batch))
-        
         return embeddings
     
     def _insert_document_record(self, file_path: str, file_hash: str, metadata: Dict[str, Any], 
                                extraction_method: str, vector_table_name: str) -> int:
         """Insert document record and return document ID."""
         file_path_obj = Path(file_path)
-        
         insert_sql = """
         INSERT INTO pdf_documents (file_name, file_path, file_hash, file_size, 
                                  total_pages, extraction_method, metadata, processing_status, 
@@ -767,8 +674,7 @@ class PDFProcessorSeparateTables:
                 :embedding_model, :vector_table_name)
         RETURNING id
         """
-        
-        with self.engine.connect() as conn:
+        with self.engine.begin() as conn:
             result = conn.execute(text(insert_sql), {
                 'file_name': file_path_obj.name,
                 'file_path': str(file_path_obj.absolute()),
@@ -781,21 +687,15 @@ class PDFProcessorSeparateTables:
                 'vector_table_name': vector_table_name
             })
             doc_id = result.fetchone()[0]
-            conn.commit()
             return doc_id
     
     def _insert_chunks_to_vector_table(self, vector_table_name: str, document_id: int, chunks: List[Dict[str, Any]]):
         """Insert chunks with embeddings into the specific vector table."""
         if not chunks:
             return
-        
-        # Generate embeddings for all chunks
         texts = [chunk['text'] for chunk in chunks]
         logger.info(f"Generating embeddings for {len(texts)} chunks using Snowflake Arctic Embed...")
         embeddings = self._batch_generate_embeddings(texts)
-        
-        # Prepare chunk records
-        successful_chunks = 0
         
         insert_sql = f"""
         INSERT INTO "{vector_table_name}" (document_id, chunk_index, chunk_text, chunk_tokens, 
@@ -803,12 +703,11 @@ class PDFProcessorSeparateTables:
         VALUES (:document_id, :chunk_index, :chunk_text, :chunk_tokens, 
                 :chunk_hash, :page_number, :chunk_type, :metadata, :embedding, :embedding_model)
         """
-        
-        with self.engine.connect() as conn:
+        successful_chunks = 0
+        with self.engine.begin() as conn:
             for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 try:
                     chunk_hash = hashlib.md5(chunk['text'].encode()).hexdigest()
-                    
                     chunk_record = {
                         'document_id': document_id,
                         'chunk_index': i,
@@ -819,19 +718,13 @@ class PDFProcessorSeparateTables:
                         'chunk_type': chunk['chunk_type'],
                         'metadata': json.dumps(chunk['metadata']),
                         'embedding': embedding,
-                        'embedding_model': self.embedding_model_name if embedding else None
+                        'embedding_model': self.embedding_model_name if embedding is not None else None
                     }
-                    
                     conn.execute(text(insert_sql), chunk_record)
-                    
                     if embedding is not None:
                         successful_chunks += 1
-                        
                 except Exception as e:
                     logger.error(f"Error inserting chunk {i}: {str(e)}")
-            
-            conn.commit()
-        
         logger.info(f"Inserted {len(chunks)} chunks to {vector_table_name}, {successful_chunks} with embeddings")
     
     def _update_document_statistics(self, document_id: int, total_chunks: int, total_tokens: int):
@@ -841,14 +734,12 @@ class PDFProcessorSeparateTables:
         SET total_chunks = :total_chunks, total_tokens = :total_tokens
         WHERE id = :document_id
         """
-        
-        with self.engine.connect() as conn:
+        with self.engine.begin() as conn:
             conn.execute(text(update_sql), {
                 'document_id': document_id,
                 'total_chunks': total_chunks,
                 'total_tokens': total_tokens
             })
-            conn.commit()
     
     def _update_document_status(self, document_id: int, status: str, error_message: str = None):
         """Update document processing status."""
@@ -857,14 +748,12 @@ class PDFProcessorSeparateTables:
         SET processing_status = :status, error_message = :error_message
         WHERE id = :document_id
         """
-        
-        with self.engine.connect() as conn:
+        with self.engine.begin() as conn:
             conn.execute(text(update_sql), {
                 'document_id': document_id,
                 'status': status,
                 'error_message': error_message
             })
-            conn.commit()
     
     def auto_process_file(self, file_path: str) -> Dict[str, Any]:
         """Automatically process PDF file only if not already processed."""
@@ -876,11 +765,8 @@ class PDFProcessorSeparateTables:
                     'file_path': str(file_path),
                     'error': 'File does not exist'
                 }
-            
-            # Check if already processed
             file_hash = self._get_file_hash(str(file_path))
             existing = self._document_exists(file_hash)
-            
             if existing:
                 document_id, vector_table_name = existing
                 logger.info(f"Document already processed: {file_path}")
@@ -892,11 +778,8 @@ class PDFProcessorSeparateTables:
                     'document_id': document_id,
                     'vector_table_name': vector_table_name
                 }
-            
-            # Process the file
             logger.info(f"Processing PDF file: {file_path}")
             return self.process_pdf_file(str(file_path))
-            
         except Exception as e:
             logger.error(f"Error in auto-processing {file_path}: {str(e)}")
             return {
@@ -920,11 +803,9 @@ class PDFProcessorSeparateTables:
             if not file_path.exists():
                 raise FileNotFoundError(f"PDF file not found: {file_path}")
             
-            # Generate file hash and vector table name
             file_hash = self._get_file_hash(str(file_path))
             vector_table_name = self._sanitize_table_name(file_path.name)
             
-            # Check if already processed
             existing = self._document_exists(file_hash)
             if existing:
                 document_id, existing_vector_table = existing
@@ -937,57 +818,47 @@ class PDFProcessorSeparateTables:
                     'vector_table_name': existing_vector_table
                 }
             
-            # Extract text from PDF
             logger.info(f"Extracting text from: {file_path}")
             pages_data, metadata, used_method = self.extract_text_from_pdf(
                 str(file_path), extraction_method
             )
             
-            # Validate extraction
             total_chars = sum(len(page['text']) for page in pages_data)
             if total_chars == 0:
                 raise Exception("No text could be extracted from PDF")
             
-            # Insert document record
             document_id = self._insert_document_record(
                 str(file_path), file_hash, metadata, used_method, vector_table_name
             )
             
-            # Create vector table for this PDF
             logger.info(f"Creating vector table: {vector_table_name}")
             if not self._create_vector_table_for_pdf(vector_table_name, document_id):
                 raise Exception(f"Failed to create vector table: {vector_table_name}")
             
-            # Chunk the text
             logger.info(f"Chunking text using strategy: {chunking_strategy}")
             chunks = self.chunk_document_text(
                 pages_data, chunking_strategy, max_tokens, overlap_tokens
             )
-            
             if not chunks:
                 raise Exception("No chunks generated from document")
             
-            # Insert chunks into the specific vector table
             if generate_embeddings:
                 logger.info(f"Processing {len(chunks)} chunks with embeddings into table: {vector_table_name}")
                 self._insert_chunks_to_vector_table(vector_table_name, document_id, chunks)
             else:
                 logger.info(f"Processing {len(chunks)} chunks without embeddings into table: {vector_table_name}")
-                # Insert without embeddings
-                for chunk in chunks:
-                    chunk_hash = hashlib.md5(chunk['text'].encode()).hexdigest()
-                    
-                    insert_sql = f"""
-                    INSERT INTO "{vector_table_name}" (document_id, chunk_index, chunk_text, chunk_tokens, 
-                                                      chunk_hash, page_number, chunk_type, metadata)
-                    VALUES (:document_id, :chunk_index, :chunk_text, :chunk_tokens, 
-                            :chunk_hash, :page_number, :chunk_type, :metadata)
-                    """
-                    
-                    with self.engine.connect() as conn:
+                insert_sql = f"""
+                INSERT INTO "{vector_table_name}" (document_id, chunk_index, chunk_text, chunk_tokens, 
+                                                  chunk_hash, page_number, chunk_type, metadata)
+                VALUES (:document_id, :chunk_index, :chunk_text, :chunk_tokens, 
+                        :chunk_hash, :page_number, :chunk_type, :metadata)
+                """
+                with self.engine.begin() as conn:
+                    for i, chunk in enumerate(chunks):
+                        chunk_hash = hashlib.md5(chunk['text'].encode()).hexdigest()
                         conn.execute(text(insert_sql), {
                             'document_id': document_id,
-                            'chunk_index': chunks.index(chunk),
+                            'chunk_index': i,
                             'chunk_text': chunk['text'],
                             'chunk_tokens': chunk['tokens'],
                             'chunk_hash': chunk_hash,
@@ -995,18 +866,12 @@ class PDFProcessorSeparateTables:
                             'chunk_type': chunk['chunk_type'],
                             'metadata': json.dumps(chunk['metadata'])
                         })
-                        conn.commit()
             
-            # Update document statistics
             total_tokens = sum(chunk['tokens'] for chunk in chunks)
             self._update_document_statistics(document_id, len(chunks), total_tokens)
-            
-            # Update status to completed
             self._update_document_status(document_id, 'completed')
             
-            # Calculate statistics
             avg_tokens = total_tokens / len(chunks) if chunks else 0
-            
             result = {
                 'success': True,
                 'file_path': str(file_path),
@@ -1027,20 +892,14 @@ class PDFProcessorSeparateTables:
                     'overlap_tokens_setting': overlap_tokens,
                 }
             }
-            
             logger.info(f"Successfully processed {file_path} into table {vector_table_name}: "
                        f"{len(chunks)} chunks, {total_tokens} tokens")
-            
             return result
-            
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Error processing PDF {file_path}: {error_msg}")
-            
-            # Update document status if we created a record
             if document_id:
                 self._update_document_status(document_id, 'failed', error_msg)
-            
             return {
                 'success': False,
                 'file_path': str(file_path),
@@ -1057,64 +916,45 @@ class PDFProcessorSeparateTables:
         """
         Search for similar chunks using vector similarity in specific table or all tables.
         Uses Snowflake Arctic Embed model for query encoding.
-        
-        Args:
-            query_text: Text to search for
-            vector_table_name: Specific vector table to search (if None, searches all)
-            document_id: Specific document ID to search
-            limit: Maximum number of results
-            similarity_threshold: Minimum similarity score (0-1)
-            
-        Returns:
-            List of similar chunks with similarity scores
         """
         try:
-            # Generate embedding for query using the "query" prompt for better search
             logger.info(f"Generating query embedding using Snowflake Arctic Embed...")
             query_embedding = self.embedding_model.encode(
                 query_text, 
                 prompt_name="query",
                 convert_to_numpy=True
             ).tolist()
-            
             if not query_embedding:
                 logger.error("Failed to generate embedding for query")
                 return []
             
-            # Determine which tables to search
             tables_to_search = []
-            
             if vector_table_name:
-                # Search specific table
                 tables_to_search.append(vector_table_name)
             elif document_id:
-                # Get table name for specific document
                 with self.engine.connect() as conn:
                     result = conn.execute(text("""
                         SELECT vector_table_name FROM pdf_documents 
                         WHERE id = :doc_id AND processing_status = 'completed'
                     """), {"doc_id": document_id})
-                    
                     row = result.fetchone()
                     if row:
-                        tables_to_search.append(row.vector_table_name)
+                        tables_to_search.append(row.vector_table_name if hasattr(row, "vector_table_name") else row[0])
             else:
-                # Search all vector tables
                 with self.engine.connect() as conn:
                     result = conn.execute(text("""
                         SELECT DISTINCT vector_table_name FROM pdf_documents 
                         WHERE processing_status = 'completed' AND vector_table_created = TRUE
                     """))
-                    
-                    tables_to_search = [row.vector_table_name for row in result]
+                    tables_to_search = [
+                        (r.vector_table_name if hasattr(r, "vector_table_name") else r[0]) for r in result
+                    ]
             
             if not tables_to_search:
                 logger.warning("No vector tables found to search")
                 return []
             
             all_results = []
-            
-            # Search each table
             for table_name in tables_to_search:
                 try:
                     search_sql = f"""
@@ -1128,17 +968,14 @@ class PDFProcessorSeparateTables:
                     ORDER BY v.embedding <=> :query_embedding::vector
                     LIMIT :limit
                     """
-                    
                     with self.engine.connect() as conn:
                         result = conn.execute(text(search_sql), {
                             'query_embedding': query_embedding,
                             'similarity_threshold': similarity_threshold,
                             'limit': limit
                         })
-                        
                         for row in result:
-                            chunk_metadata = json.loads(row.metadata) if row.metadata else {}
-                            
+                            md = json.loads(row.metadata) if row.metadata else {}
                             chunk = {
                                 'id': row.id,
                                 'text': row.chunk_text,
@@ -1149,21 +986,17 @@ class PDFProcessorSeparateTables:
                                 'file_path': row.file_path,
                                 'vector_table_name': row.vector_table_name,
                                 'similarity_score': float(row.similarity_score),
-                                'metadata': chunk_metadata
+                                'metadata': md
                             }
                             all_results.append(chunk)
-                
                 except Exception as e:
                     logger.error(f"Error searching table {table_name}: {str(e)}")
                     continue
             
-            # Sort all results by similarity score and limit
             all_results.sort(key=lambda x: x['similarity_score'], reverse=True)
             final_results = all_results[:limit]
-            
             logger.info(f"Found {len(final_results)} similar chunks across {len(tables_to_search)} tables")
             return final_results
-                
         except Exception as e:
             logger.error(f"Error searching similar chunks: {str(e)}")
             return []
@@ -1172,18 +1005,14 @@ class PDFProcessorSeparateTables:
         """Get information about a specific vector table."""
         try:
             with self.engine.connect() as conn:
-                # Check if table exists
                 result = conn.execute(text("""
                     SELECT EXISTS (
                         SELECT FROM information_schema.tables 
                         WHERE table_name = :table_name
                     )
                 """), {"table_name": vector_table_name})
-                
                 if not result.scalar():
                     return None
-                
-                # Get statistics
                 stats_result = conn.execute(text(f"""
                     SELECT COUNT(*) as total_chunks,
                            COUNT(embedding) as chunks_with_embeddings,
@@ -1192,18 +1021,13 @@ class PDFProcessorSeparateTables:
                            MAX(page_number) as last_page
                     FROM "{vector_table_name}"
                 """))
-                
                 stats = stats_result.fetchone()
-                
-                # Get document info
                 doc_result = conn.execute(text("""
                     SELECT file_name, file_path, total_pages
                     FROM pdf_documents 
                     WHERE vector_table_name = :table_name
                 """), {"table_name": vector_table_name})
-                
                 doc_info = doc_result.fetchone()
-                
                 return {
                     'table_name': vector_table_name,
                     'total_chunks': stats.total_chunks,
@@ -1215,7 +1039,6 @@ class PDFProcessorSeparateTables:
                     'file_path': doc_info.file_path if doc_info else "",
                     'total_pages': doc_info.total_pages if doc_info else 0
                 }
-                
         except Exception as e:
             logger.error(f"Error getting vector table info for {vector_table_name}: {str(e)}")
             return None
@@ -1231,7 +1054,6 @@ class PDFProcessorSeparateTables:
                     WHERE vector_table_created = TRUE
                     ORDER BY processed_at DESC
                 """))
-                
                 tables = []
                 for row in result:
                     table_info = self.get_vector_table_info(row.vector_table_name)
@@ -1243,9 +1065,7 @@ class PDFProcessorSeparateTables:
                             'embedding_model': row.embedding_model
                         })
                         tables.append(table_info)
-                
                 return tables
-                
         except Exception as e:
             logger.error(f"Error listing vector tables: {str(e)}")
             return []
@@ -1253,31 +1073,20 @@ class PDFProcessorSeparateTables:
     def delete_pdf_and_vectors(self, document_id: int) -> bool:
         """Delete document and its dedicated vector table."""
         try:
-            # Get vector table name
             with self.engine.connect() as conn:
                 result = conn.execute(text("""
                     SELECT vector_table_name FROM pdf_documents WHERE id = :doc_id
                 """), {"doc_id": document_id})
-                
                 row = result.fetchone()
                 if not row:
                     logger.warning(f"Document {document_id} not found")
                     return False
-                
-                vector_table_name = row.vector_table_name
-                
-                # Drop the vector table
+                vector_table_name = row.vector_table_name if hasattr(row, "vector_table_name") else row[0]
+            with self.engine.begin() as conn:
                 conn.execute(text(f'DROP TABLE IF EXISTS "{vector_table_name}" CASCADE'))
-                
-                # Delete document record
-                conn.execute(text("DELETE FROM pdf_documents WHERE id = :doc_id"), 
-                           {"doc_id": document_id})
-                
-                conn.commit()
-                
-                logger.info(f"Deleted document {document_id} and vector table {vector_table_name}")
-                return True
-                
+                conn.execute(text("DELETE FROM pdf_documents WHERE id = :doc_id"), {"doc_id": document_id})
+            logger.info(f"Deleted document {document_id} and vector table {vector_table_name}")
+            return True
         except Exception as e:
             logger.error(f"Error deleting document {document_id}: {str(e)}")
             return False
@@ -1293,11 +1102,9 @@ class PDFProcessorSeparateTables:
                     FROM pdf_documents
                     ORDER BY processed_at DESC
                 """))
-                
                 documents = []
                 for row in result:
                     metadata = json.loads(row.metadata) if row.metadata else {}
-                    
                     doc = {
                         'id': row.id,
                         'file_name': row.file_name,
@@ -1314,9 +1121,7 @@ class PDFProcessorSeparateTables:
                         'metadata': metadata
                     }
                     documents.append(doc)
-                
                 return documents
-                
         except Exception as e:
             logger.error(f"Error listing documents: {str(e)}")
             return []
@@ -1325,43 +1130,35 @@ class PDFProcessorSeparateTables:
         """Get overall processing statistics including vector table stats."""
         try:
             with self.engine.connect() as conn:
-                # Document statistics
                 doc_stats = conn.execute(text("""
                     SELECT processing_status, COUNT(*) as count
                     FROM pdf_documents
                     GROUP BY processing_status
                 """)).fetchall()
-                
-                # Vector table statistics
                 vector_stats = conn.execute(text("""
                     SELECT COUNT(*) as total_vector_tables,
                            COUNT(CASE WHEN vector_table_created = TRUE THEN 1 END) as created_tables
                     FROM pdf_documents
                     WHERE processing_status = 'completed'
                 """)).fetchone()
-                
-                # Get sample of actual chunk counts from vector tables
                 table_names = conn.execute(text("""
                     SELECT vector_table_name FROM pdf_documents 
                     WHERE vector_table_created = TRUE AND processing_status = 'completed'
                     LIMIT 10
                 """)).fetchall()
-                
                 total_chunks_actual = 0
                 total_embeddings_actual = 0
-                
                 for table_row in table_names:
+                    table_name = table_row.vector_table_name if hasattr(table_row, "vector_table_name") else table_row[0]
                     try:
                         chunk_count = conn.execute(text(f"""
                             SELECT COUNT(*) as chunks, COUNT(embedding) as embeddings
-                            FROM "{table_row.vector_table_name}"
+                            FROM "{table_name}"
                         """)).fetchone()
-                        
                         total_chunks_actual += chunk_count.chunks
                         total_embeddings_actual += chunk_count.embeddings
                     except:
                         continue
-                
                 return {
                     'document_status_counts': {row.processing_status: row.count for row in doc_stats},
                     'vector_table_statistics': {
@@ -1374,7 +1171,6 @@ class PDFProcessorSeparateTables:
                     'embedding_model': self.embedding_model_name,
                     'embedding_dimension': self.embedding_dim
                 }
-                
         except Exception as e:
             logger.error(f"Error getting processing stats: {str(e)}")
             return {}
@@ -1390,10 +1186,8 @@ class PDFProcessorSeparateTables:
             watch_path.mkdir(parents=True, exist_ok=True)
             logger.info(f"Created watch directory: {watch_path}")
         
-        # Process existing files first
         self.process_existing_files(str(watch_path))
         
-        # Start watching for new files
         event_handler = PDFFileHandler(self)
         self.observer = Observer()
         self.observer.schedule(event_handler, str(watch_path), recursive=True)
@@ -1412,7 +1206,6 @@ class PDFProcessorSeparateTables:
         """Process all existing PDF files in directory."""
         directory = Path(directory)
         pdf_extensions = {'.pdf'}
-        
         for file_path in directory.rglob('*'):
             if file_path.is_file() and file_path.suffix.lower() in pdf_extensions:
                 logger.info(f"Processing existing file: {file_path}")
@@ -1430,15 +1223,7 @@ def setup_pdf_processor_separate_tables(pdf_directory: str = "data/documents/pdf
                                         embedding_model: str = "Snowflake/snowflake-arctic-embed-l") -> PDFProcessorSeparateTables:
     """
     Set up PDF processor with Snowflake Arctic Embed and automatic file watching.
-    
-    Args:
-        pdf_directory: Directory containing PDF files
-        embedding_model: Snowflake embedding model to use
-        
-    Returns:
-        Configured PDFProcessorSeparateTables instance
     """
-    # Default PostgreSQL configuration
     db_config = {
         'host': 'localhost',
         'port': '5432',
@@ -1446,17 +1231,12 @@ def setup_pdf_processor_separate_tables(pdf_directory: str = "data/documents/pdf
         'username': 'postgres',
         'password': 'password'
     }
-    
-    # Initialize processor
     processor = PDFProcessorSeparateTables(
         db_config=db_config,
         embedding_model_name=embedding_model,
         watch_directory=pdf_directory
     )
-    
-    # Start watching for new files
     processor.start_watching()
-    
     return processor
 
 
@@ -1464,13 +1244,11 @@ def setup_pdf_processor_separate_tables(pdf_directory: str = "data/documents/pdf
 if __name__ == "__main__":
     import time
     
-    # Set up logging
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Initialize processor
     print("Initializing PDF processor with Snowflake Arctic Embed...")
     processor = setup_pdf_processor_separate_tables(
         pdf_directory="data/documents/pdfs/",
@@ -1488,12 +1266,10 @@ if __name__ == "__main__":
         print("- Press 'v' to list vector tables")
         print("- Press 't <query>' to test search")
         print("- Press 'Ctrl+C' to stop")
-        
-        # Keep the script running
         while True:
             time.sleep(1)
-            
     except KeyboardInterrupt:
         print("\nStopping PDF processor...")
         processor.close()
         print("PDF processor stopped.")
+
