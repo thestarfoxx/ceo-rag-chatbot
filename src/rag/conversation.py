@@ -686,7 +686,7 @@ class ConversationalRAGSystem:
             self.retriever = create_retriever(
                 db_config=db_config,
                 openai_api_key=self.openai_api_key,  # kept for compatibility with your retriever
-                embedding_model=os.getenv("EMBEDDING_MODEL_NAME", "Snowflake/snowflake-arctic-embed-"),
+                embedding_model=os.getenv("EMBEDDING_MODEL_NAME", "Snowflake/snowflake-arctic-embed-l"),
             )
             self.retriever.update_search_parameters(
                 similarity_threshold=0.15,
