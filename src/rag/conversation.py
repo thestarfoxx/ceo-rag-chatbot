@@ -3,10 +3,10 @@
 Console-based Conversational RAG System with Email Functionality
 
 This version:
-- Uses LM Studio via OpenAI-compatible API (http://localhost:1234/v1)
-- Initializes a single OpenAI client and passes it everywhere
-- Forces retriever to use 'Snowflake/snowflake-arctic-embed-l' embeddings
-- Avoids any calls to api.openai.com
+- Uses LM Studio via an OpenAI-compatible API (http://localhost:1234/v1)
+- Initializes ONE shared OpenAI client and passes it everywhere
+- Forces the retriever to use 'Snowflake/snowflake-arctic-embed-l' for embeddings
+- Ensures NO calls go to api.openai.com (sets base_url for the global openai module)
 """
 
 import logging
@@ -21,26 +21,46 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-# --- LM Studio / OpenAI-compatible client setup ---
-# These env vars help if code inside retriever.py constructs its own client
-os.environ.setdefault("OPENAI_BASE_URL", "http://localhost:1234/v1")
-os.environ.setdefault("OPENAI_API_KEY", "not-needed")
-
-from openai import OpenAI  # pip install openai>=1.0.0
-
-# Single shared client for the whole app (LM Studio)
+# ---------------------------------------------------------------------
+# LM Studio / OpenAI-compatible client setup (MUST be done BEFORE importing retriever)
+# ---------------------------------------------------------------------
 LMSTUDIO_BASE_URL = os.getenv("OPENAI_BASE_URL", "http://localhost:1234/v1")
 LMSTUDIO_API_KEY = os.getenv("OPENAI_API_KEY", "not-needed")
+os.environ.setdefault("OPENAI_BASE_URL", LMSTUDIO_BASE_URL)   # new SDK env
+os.environ.setdefault("OPENAI_API_BASE", LMSTUDIO_BASE_URL)   # old SDK env
+os.environ.setdefault("OPENAI_API_KEY", LMSTUDIO_API_KEY)
+
+# Set the global module config so ANY code using `import openai` + global namespace
+# (e.g., openai.chat.completions.create) will also hit LM Studio instead of api.openai.com.
+import openai  # type: ignore
+try:
+    # For openai>=1.0
+    openai.base_url = LMSTUDIO_BASE_URL  # type: ignore[attr-defined]
+except Exception:
+    pass
+try:
+    # For openai<1.0
+    openai.api_base = LMSTUDIO_BASE_URL  # type: ignore[attr-defined]
+except Exception:
+    pass
+openai.api_key = LMSTUDIO_API_KEY
+
+# Also create a modern client instance to use in THIS file.
+from openai import OpenAI  # pip install openai>=1.0.0
 client = OpenAI(base_url=LMSTUDIO_BASE_URL, api_key=LMSTUDIO_API_KEY)
 
-# --- Import retriever (your existing module) ---
+# ---------------------------------------------------------------------
+# Import retriever (uses global `openai` module; our base_url/api_key are already set)
+# ---------------------------------------------------------------------
 try:
     from retriever import HybridRetriever, RetrievalResult, create_retriever
 except ImportError:
     print("Error: Could not import retriever module. Make sure retriever.py is in the same directory.")
     sys.exit(1)
 
-# --- Logging ---
+# ---------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -109,7 +129,7 @@ class EmailProcessor:
     """Drafts and analyzes emails using the LM Studio client."""
     def __init__(self, lm_client: OpenAI) -> None:
         self.client = lm_client
-        # Choose a local LM Studio chat model name you have loaded
+        # Set the LM Studio chat model you have loaded
         self.chat_model = os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b")
 
     def draft_email(
@@ -152,10 +172,7 @@ class EmailProcessor:
             resp = self.client.chat.completions.create(
                 model=self.chat_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert business email writer specializing in executive communications."
-                    },
+                    {"role": "system", "content": "You are an expert business email writer specializing in executive communications."},
                     {"role": "user", "content": full_prompt},
                 ],
                 max_tokens=1000,
@@ -222,10 +239,7 @@ Provide a detailed analysis covering:
             resp = self.client.chat.completions.create(
                 model=self.chat_model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert executive assistant specializing in email analysis and business communications."
-                    },
+                    {"role": "system", "content": "You are an expert executive assistant specializing in email analysis and business communications."},
                     {"role": "user", "content": analysis_prompt},
                 ],
                 max_tokens=800,
@@ -570,15 +584,15 @@ class ConversationalRAGSystem:
         embedding_model_name = os.getenv("EMBEDDING_MODEL", "Snowflake/snowflake-arctic-embed-l")
 
         try:
+            # NOTE: Do NOT pass unknown kwargs (like openai_client). retriever.create_retriever
+            # signature is (db_config=None, openai_api_key=None, embedding_model=..., custom_prefixes=None)
             self.retriever = create_retriever(
                 db_config=db_config,
-                # Pass through the chat client or config if your retriever needs LLM
-                openai_client=self.client,               # if retriever supports dependency injection
-                openai_api_key=LMSTUDIO_API_KEY,         # backward compatibility if needed
-                openai_base_url=LMSTUDIO_BASE_URL,       # helps retriever use LM Studio
-                embedding_model=embedding_model_name,     # <-- key change for your request
+                embedding_model=embedding_model_name,
+                # Optional: pass a key (LM Studio ignores it). retriever may set openai.api_key again.
+                openai_api_key=LMSTUDIO_API_KEY,
             )
-            # Tune search parameters as you like
+            # Tune search parameters
             self.retriever.update_search_parameters(
                 similarity_threshold=0.15,
                 max_vector_results=10,
