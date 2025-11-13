@@ -438,7 +438,7 @@ Should this use vector search (documents) or sql search (structured data)?"""
                     all_chunks = []
                     for row in result:
                         similarity = float(row.similarity_score)
-                        logger.info(f"Found chunk with similarity: {similarity:.4f}")
+                        logger.info("Found chunk with similarity: %.4f", similarity)
                         
                         chunk_metadata = {}
                         if row.metadata:
@@ -469,14 +469,25 @@ Should this use vector search (documents) or sql search (structured data)?"""
                         }
                         all_chunks.append(chunk)
                     
-                    filtered_chunks = [c for c in all_chunks if c['similarity_score'] >= (1.0 - self.vector_similarity_threshold)]
-                    logger.info(f"Found {len(all_chunks)} total chunks, {len(filtered_chunks)} above similarity threshold")
+                    filtered_chunks = [
+                        c for c in all_chunks 
+                        if c['similarity_score'] >= (1.0 - float(self.vector_similarity_threshold))
+                    ]
+
+                    # 🧷 SAFE LOGGING WITH %.3f (NO F-STRING)
+                    threshold_val = 1.0 - float(self.vector_similarity_threshold)
+                    logger.info(
+                        "Found %d total chunks, %d above similarity threshold %.3f",
+                        len(all_chunks),
+                        len(filtered_chunks),
+                        threshold_val,
+                    )
                     
                     if len(filtered_chunks) == 0 and len(all_chunks) > 0:
-                        logger.warning(f"No chunks above threshold, returning top {min(5, len(all_chunks))} results")
+                        logger.warning("No chunks above threshold, returning top %d results", min(5, len(all_chunks)))
                         return all_chunks[:5]
                 
-                logger.info(f"Vector search in {selected_table} found {len(filtered_chunks)} chunks")
+                logger.info("Vector search in %s found %d chunks", selected_table, len(filtered_chunks))
                 return filtered_chunks
                 
             except Exception as e:
@@ -611,7 +622,7 @@ Return only the SQL query."""
                     logger.warning(f"Generated query contains dangerous keyword: {kw}")
                     return None
             
-            logger.info(f"Generated SQL for table {table_name}: {sql_query[:100]}...")
+            logger.info("Generated SQL for table %s: %s...", table_name, sql_query[:100])
             return sql_query
         except Exception as e:
             logger.error(f"Error generating SQL query: {str(e)}")
@@ -644,7 +655,7 @@ Return only the SQL query."""
                         row_dict['generated_sql'] = sql_query
                         row_dict['selected_table'] = selected_table
                         results.append(row_dict)
-                    logger.info(f"SQL search in {selected_table} returned {len(results)} rows")
+                    logger.info("SQL search in %s returned %d rows", selected_table, len(results))
                     return results[:self.max_sql_results]
                 except Exception as e:
                     logger.error(f"Error executing SQL on {selected_table}: {str(e)}")
@@ -765,7 +776,7 @@ Return only the SQL query."""
     def add_table_prefix(self, prefix: str, search_type: str, description: str):
         """Add a new table prefix configuration."""
         self.prefix_config.add_prefix(prefix, search_type, description)
-        logger.info(f"Added new prefix: {prefix} for {search_type} search")
+        logger.info(f"Added new prefix: %s for %s search", prefix, search_type)
     
     def list_tables_by_prefix(self, prefix: str) -> List[str]:
         """List all tables matching a specific prefix."""
@@ -805,13 +816,13 @@ Return only the SQL query."""
         """Update search parameters."""
         if similarity_threshold is not None:
             self.vector_similarity_threshold = min(similarity_threshold, 0.25)
-            logger.info(f"Updated similarity threshold to: {self.vector_similarity_threshold}")
+            logger.info("Updated similarity threshold to: %.3f", float(self.vector_similarity_threshold))
         if max_vector_results is not None:
             self.max_vector_results = max_vector_results
-            logger.info(f"Updated max vector results to: {self.max_vector_results}")
+            logger.info("Updated max vector results to: %d", self.max_vector_results)
         if max_sql_results is not None:
             self.max_sql_results = max_sql_results
-            logger.info(f"Updated max SQL results to: {self.max_sql_results}")
+            logger.info("Updated max SQL results to: %d", self.max_sql_results)
     
     def close(self):
         """Close database connections."""
