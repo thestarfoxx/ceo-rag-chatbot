@@ -574,6 +574,7 @@ CRITICAL DATA HANDLING RULES:
 2. Use NULLIF and regex to handle non-numeric values safely
 3. For ordering by financial amounts, use this pattern:
    ORDER BY NULLIF(regexp_replace(column_name, '[^0-9]', '', 'g'), '')::BIGINT DESC NULLS LAST
+4.DO NOT try to CREATE or DROP anythıng.
 
 Return ONLY the SQL query without explanations or formatting."""
         
