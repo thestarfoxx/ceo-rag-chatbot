@@ -470,7 +470,7 @@ Should this use vector search (documents) or sql search (structured data)?"""
                         all_chunks.append(chunk)
                     
                     filtered_chunks = [c for c in all_chunks if c['similarity_score'] >= (1.0 - self.vector_similarity_threshold)]
-                    logger.info(f"Found {len(all_chunks)} total chunks, {len(filtered_chunks)} above similarity threshold {1.0 - self.vector_similarity_threshold:.3f}")
+                    logger.info(f"Found {len(all_chunks)} total chunks, {len(filtered_chunks)} above similarity threshold")
                     
                     if len(filtered_chunks) == 0 and len(all_chunks) > 0:
                         logger.warning(f"No chunks above threshold, returning top {min(5, len(all_chunks))} results")
