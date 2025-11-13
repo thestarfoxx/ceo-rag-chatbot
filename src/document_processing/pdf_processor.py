@@ -30,6 +30,7 @@ from sentence_transformers import SentenceTransformer
 # ---------------------------
 # Config
 # ---------------------------
+
 PDF_DIR = os.getenv("PDF_DIR", "data/documents/pdfs")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
@@ -83,9 +84,8 @@ def chunk_text(txt: str, size: int, overlap: int) -> List[str]:
             chunks.append(piece)
         if end >= n:
             break
-        # standard sliding window with overlap
         if overlap >= size:
-            # prevent infinite loops
+            # no overlap if overlap is invalid
             start = end
         else:
             start = end - overlap
@@ -174,7 +174,6 @@ def upsert_pdf(
 
 
 def drop_and_create_vector_table(conn: Connection, table_name: str, dim: int) -> None:
-    # table name is quoted to be safe for slug-based names
     conn.execute(text(f'DROP TABLE IF EXISTS "{table_name}" CASCADE'))
     conn.execute(
         text(
@@ -218,7 +217,7 @@ def insert_chunk(
         VALUES
             (:chunk_text, :chunk_tokens, :page_number, :chunk_type,
              CAST(:metadata AS JSONB),
-             :embedding::vector, :embedding_model)
+             CAST(:embedding AS vector), :embedding_model)
         """
     )
 
@@ -316,14 +315,12 @@ def process_pdf(engine: Engine, embedder: SentenceTransformer, pdf_path: Path) -
     inserted = 0
     with engine.begin() as conn:
         for i in range(0, len(chunks), BATCH):
-            batch = chunks[i : i + BATCH]
+            batch = chunks[i: i + BATCH]
             texts = [c[1] for c in batch]
 
-            # SentenceTransformer encode
             embs = embedder.encode(texts, convert_to_numpy=True)
 
             for (page_no, text_chunk), emb in zip(batch, embs):
-                # Turn to pgvector-compatible string "[x1,x2,...]"
                 embedding_str = "[" + ",".join(str(float(x)) for x in emb.tolist()) + "]"
                 tokens = len(text_chunk.split())
 
@@ -340,7 +337,6 @@ def process_pdf(engine: Engine, embedder: SentenceTransformer, pdf_path: Path) -
                 )
                 inserted += 1
 
-        # After all inserts for this PDF in same transaction, mark as completed
         mark_completed(conn, pdf_id, inserted)
 
     logger.info(
