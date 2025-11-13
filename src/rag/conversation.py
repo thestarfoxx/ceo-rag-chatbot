@@ -397,11 +397,16 @@ class ResponseAnalyzer:
         try:
             chunk_info = []
             for i, chunk in enumerate(chunks[:5], 1):
+                sim_val = chunk.get("similarity_score", 0.0)
+                try:
+                    sim_float = float(sim_val)
+                except (TypeError, ValueError):
+                    sim_float = 0.0
                 chunk_info.append({
                     "index": i,
                     "source": chunk.get("file_name", "Unknown document"),
                     "page": chunk.get("page_number", 1),
-                    "similarity": chunk.get("similarity_score", 0),
+                    "similarity": sim_float,
                     "content": chunk.get("text", "")[:1500],
                 })
 
@@ -414,8 +419,9 @@ CONVERSATION CONTEXT:
 RETRIEVED INFORMATION:
 """
             for c in chunk_info:
+                sim_display = round(c["similarity"], 3)
                 synthesis_prompt += (
-                    f"\nDocument {c['index']}: {c['source']} (Page {c['page']}, Relevance: {c['similarity']:.3f})\n"
+                    f"\nDocument {c['index']}: {c['source']} (Page {c['page']}, Relevance: {sim_display})\n"
                     f"Content: {c['content']}\n---\n"
                 )
             synthesis_prompt += """
@@ -444,12 +450,21 @@ RESPONSE FORMAT:
             synthesized = resp.choices[0].message.content.strip()
 
             unique_sources = {c['source'] for c in chunk_info}
+            if chunks:
+                avg_sim = sum(
+                    float(ch.get("similarity_score", 0.0)) if isinstance(ch.get("similarity_score", 0.0), (int, float, str)) else 0.0
+                    for ch in chunks
+                ) / max(1, len(chunks))
+            else:
+                avg_sim = 0.0
+            avg_sim_display = round(avg_sim, 3)
+
             footer = f"""
 
 📊 Analysis Metadata:
 • Sources analyzed: {len(unique_sources)} ({', '.join(sorted(unique_sources))})
 • Chunks considered: {len(chunks)} total, {len(chunk_info)} in detail
-• Avg relevance: { (sum(ch.get('similarity_score', 0) for ch in chunks) / max(1, len(chunks))):.3f }
+• Avg relevance: {avg_sim_display}
 • Model: {self.chat_model}"""
             return synthesized + footer
         except Exception as e:
@@ -538,7 +553,13 @@ DOCUMENTS:
 """
             if vector_chunks:
                 for i, ch in enumerate(vector_chunks[:3], 1):
-                    prompt += f"\nDoc {i}: {ch.get('file_name', 'Unknown')} (p{ch.get('page_number',1)}), rel={ch.get('similarity_score',0):.3f}\n"
+                    sim_val = ch.get("similarity_score", 0.0)
+                    try:
+                        sim_float = float(sim_val)
+                    except (TypeError, ValueError):
+                        sim_float = 0.0
+                    sim_display = round(sim_float, 3)
+                    prompt += f"\nDoc {i}: {ch.get('file_name', 'Unknown')} (p{ch.get('page_number',1)}), rel={sim_display}\n"
                     prompt += f"Excerpt: {ch.get('text','')[:800]}\n---\n"
             else:
                 prompt += "No relevant documents.\n"
