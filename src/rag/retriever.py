@@ -14,6 +14,33 @@ from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
+
+def auto_detect_lmstudio_chat_model(lm_client: OpenAI) -> str:
+    """
+    Pick the model that the OpenAI-compatible server (LM Studio, etc.) currently exposes.
+
+    Priority:
+    1) If LMSTUDIO_CHAT_MODEL env var is set, use that (manual override).
+    2) Otherwise, call /v1/models and take the first model id.
+    3) If anything fails, fall back to a known default id.
+    """
+    env_model = os.getenv("LMSTUDIO_CHAT_MODEL")
+    if env_model:
+        return env_model
+
+    try:
+        models = lm_client.models.list()
+        ids = [m.id for m in getattr(models, "data", [])]
+        if ids:
+            return ids[0]
+        logger.warning("LM Studio /v1/models returned no model ids; falling back to default.")
+    except Exception as e:
+        logger.warning(f"Could not auto-detect LM Studio model, falling back to default: {e}")
+
+    # Fallback: keep previous default behavior
+    return "openai/gpt-oss-20b"
+
+
 @dataclass
 class RetrievalResult:
     """Container for retrieval results from both vector and SQL searches."""
@@ -21,6 +48,7 @@ class RetrievalResult:
     sql_results: List[Dict[str, Any]]
     metadata: Dict[str, Any]
     query_info: Dict[str, Any]
+
 
 class TablePrefixConfig:
     """Configuration for table prefixes and their associated search types."""
@@ -39,8 +67,11 @@ class TablePrefixConfig:
     
     def get_prefixes_by_type(self, search_type: str) -> List[str]:
         """Get all prefixes for a given search type."""
-        return [prefix for prefix, config in self.prefixes.items() 
-                if config['search_type'] == search_type]
+        return [
+            prefix
+            for prefix, config in self.prefixes.items()
+            if config['search_type'] == search_type
+        ]
     
     def add_prefix(self, prefix: str, search_type: str, description: str):
         """Add a new prefix configuration."""
@@ -51,6 +82,7 @@ class TablePrefixConfig:
             'search_type': search_type,
             'description': description
         }
+
 
 class TableSelector:
     """Handles LLM-based table selection from filtered lists."""
@@ -63,14 +95,19 @@ class TableSelector:
         # Cache for table lists to avoid repeated queries
         self._table_cache = {}
         self._cache_expiry = 300  # 5 minutes
+
+        # Auto-detected chat model for table selection (LM Studio, etc.)
+        self.chat_model = auto_detect_lmstudio_chat_model(self.client)
     
     def _get_all_table_names(self) -> List[str]:
         """Get all table names from the database."""
         cache_key = "all_tables"
         now = time.time()
         
-        if (cache_key in self._table_cache and 
-            now - self._table_cache[cache_key]['timestamp'] < self._cache_expiry):
+        if (
+            cache_key in self._table_cache and
+            now - self._table_cache[cache_key]['timestamp'] < self._cache_expiry
+        ):
             return self._table_cache[cache_key]['tables']
         
         try:
@@ -133,7 +170,12 @@ class TableSelector:
                             year_match = re.search(r'(\d{4})', doc_part)
                             if year_match:
                                 year = year_match.group(1)
-                                doc_name = doc_part.replace(year + '_', '').replace('_', ' ').title()
+                                doc_name = (
+                                    doc_part
+                                    .replace(year + '_', '')
+                                    .replace('_', ' ')
+                                    .title()
+                                )
                                 description = f"Document: {doc_name} ({year})"
                             else:
                                 doc_name = doc_part.replace('_', ' ').title()
@@ -157,8 +199,12 @@ class TableSelector:
                 'description': ''
             }
     
-    def select_table_with_llm(self, query: str, search_type: str, 
-                             available_tables: List[str]) -> Optional[str]:
+    def select_table_with_llm(
+        self,
+        query: str,
+        search_type: str, 
+        available_tables: List[str]
+    ) -> Optional[str]:
         """
         Use LLM to select the most appropriate table from the filtered list.
         """
@@ -225,9 +271,9 @@ Select the most appropriate table name from the list above that would best answe
 Consider the year mentioned in the query and the type of information requested.
 Return only the table name."""
 
-            # *** LM Studio / OpenAI-compatible endpoint ***
+            # Use auto-detected chat model (LM Studio or other)
             response = self.client.chat.completions.create(
-                model="openai/gpt-oss-20b",
+                model=self.chat_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -241,20 +287,34 @@ Return only the table name."""
             selected_table = selected_table.strip('"\'` \n\r')
             
             if selected_table in available_tables:
-                logger.info(f"LLM selected table: {selected_table} for query: '{query[:50]}...'")
+                logger.info(
+                    "LLM selected table: %s for query: '%s...'",
+                    selected_table,
+                    query[:50],
+                )
                 return selected_table
             else:
+                # Try loose matching
                 for table in available_tables:
                     if table in selected_table or selected_table in table:
-                        logger.warning(f"LLM returned '{selected_table}', using closest match: {table}")
+                        logger.warning(
+                            "LLM returned '%s', using closest match: %s",
+                            selected_table,
+                            table,
+                        )
                         return table
                 
-                logger.error(f"LLM returned invalid table: '{selected_table}', not in available list: {available_tables}")
+                logger.error(
+                    "LLM returned invalid table: '%s', not in available list: %s",
+                    selected_table,
+                    available_tables,
+                )
                 return available_tables[0]
             
         except Exception as e:
             logger.error(f"Error in LLM table selection: {str(e)}")
             return available_tables[0] if available_tables else None
+
 
 class HybridRetriever:
     """
@@ -281,6 +341,9 @@ class HybridRetriever:
         # --- LLM CLIENT ---
         # Prefer explicit client (LM Studio) if provided; otherwise make a default client
         self.client = openai_client or OpenAI()
+
+        # Auto-detected chat model for all LLM calls (query type, SQL gen, etc.)
+        self.chat_model = auto_detect_lmstudio_chat_model(self.client)
         
         # Initialize Snowflake Arctic Embed model for embeddings
         logger.info(f"Loading Snowflake embedding model: {embedding_model}")
@@ -301,7 +364,11 @@ class HybridRetriever:
         # Cache for table schemas to avoid repeated queries
         self._table_schema_cache = {}
         
-        logger.info("HybridRetriever initialized with Snowflake Arctic Embed and LLM table selection (LM Studio client ready).")
+        logger.info(
+            "HybridRetriever initialized with Snowflake Arctic Embed and "
+            "LLM table selection (auto chat model: %s).",
+            self.chat_model,
+        )
     
     def _get_default_db_config(self) -> Dict[str, str]:
         """Get default PostgreSQL configuration."""
@@ -348,7 +415,12 @@ class HybridRetriever:
         all_tables = self.table_selector._get_all_table_names()
         prefixes = self.prefix_config.get_prefixes_by_type(search_type)
         filtered_tables = self.table_selector._filter_tables_by_prefixes(all_tables, prefixes)
-        logger.info(f"Found {len(filtered_tables)} tables for {search_type} search with prefixes {prefixes}")
+        logger.info(
+            "Found %d tables for %s search with prefixes %s",
+            len(filtered_tables),
+            search_type,
+            prefixes,
+        )
         return filtered_tables
     
     def _determine_query_type(self, query: str) -> str:
@@ -365,7 +437,7 @@ Return only "vector" or "sql"."""
 Should this use vector search (documents) or sql search (structured data)?"""
 
             resp = self.client.chat.completions.create(
-                model="openai/gpt-oss-20b",
+                model=self.chat_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -376,12 +448,19 @@ Should this use vector search (documents) or sql search (structured data)?"""
             query_type = resp.choices[0].message.content.strip().lower()
             if query_type not in ['vector', 'sql']:
                 query_lower = query.lower()
-                vector_keywords = ['rapor', 'faaliyet', 'belge', 'dokuman', 'document', 'pdf', 'ara', 'bul', 'find', 'search']
-                sql_keywords  = ['en çok', 'sıralama', 'liste', 'top', 'kar', 'gelir', 'revenue', 'profit', 'iso', 'şirket', 'company']
+                vector_keywords = [
+                    'rapor', 'faaliyet', 'belge', 'dokuman',
+                    'document', 'pdf', 'ara', 'bul', 'find', 'search'
+                ]
+                sql_keywords  = [
+                    'en çok', 'sıralama', 'liste', 'top',
+                    'kar', 'gelir', 'revenue', 'profit', 'iso',
+                    'şirket', 'company'
+                ]
                 vector_score = sum(1 for w in vector_keywords if w in query_lower)
                 sql_score = sum(1 for w in sql_keywords if w in query_lower)
                 query_type = 'sql' if sql_score > vector_score else 'vector'
-            logger.info(f"Query type determined: {query_type} for query: '{query[:50]}...'")
+            logger.info("Query type determined: %s for query: '%s...'", query_type, query[:50])
             return query_type
         except Exception as e:
             logger.error(f"Error determining query type: {str(e)}")
@@ -400,7 +479,11 @@ Should this use vector search (documents) or sql search (structured data)?"""
             
             if not selected_table:
                 available_tables = self._get_available_tables_by_type('vector')
-                selected_table = self.table_selector.select_table_with_llm(query, 'vector', available_tables)
+                selected_table = self.table_selector.select_table_with_llm(
+                    query,
+                    'vector',
+                    available_tables,
+                )
                 if not selected_table:
                     logger.warning("No vector table selected")
                     return []
@@ -417,9 +500,14 @@ Should this use vector search (documents) or sql search (structured data)?"""
                 with self.engine.connect() as conn:
                     debug_result = conn.execute(text(debug_sql))
                     debug_row = debug_result.fetchone()
-                    logger.info(f"Table {selected_table}: {debug_row.total_rows} total rows, {debug_row.rows_with_embeddings} with embeddings")
+                    logger.info(
+                        "Table %s: %s total rows, %s with embeddings",
+                        selected_table,
+                        debug_row.total_rows,
+                        debug_row.rows_with_embeddings,
+                    )
                     if debug_row.rows_with_embeddings == 0:
-                        logger.warning(f"No embeddings found in table {selected_table}")
+                        logger.warning("No embeddings found in table %s", selected_table)
                         return []
                 
                 search_sql = f"""
@@ -448,9 +536,18 @@ Should this use vector search (documents) or sql search (structured data)?"""
                                 elif isinstance(row.metadata, dict):
                                     chunk_metadata = row.metadata
                             except (json.JSONDecodeError, TypeError) as e:
-                                logger.warning(f"Could not parse metadata for chunk {row.id}: {str(e)}")
+                                logger.warning(
+                                    "Could not parse metadata for chunk %s: %s",
+                                    row.id,
+                                    str(e),
+                                )
                         
-                        file_name = selected_table.replace('vectors_doc_', '').replace('_', ' ').title()
+                        file_name = (
+                            selected_table
+                            .replace('vectors_doc_', '')
+                            .replace('_', ' ')
+                            .title()
+                        )
                         
                         chunk = {
                             'id': row.id,
@@ -474,7 +571,6 @@ Should this use vector search (documents) or sql search (structured data)?"""
                         if c['similarity_score'] >= (1.0 - float(self.vector_similarity_threshold))
                     ]
 
-                    # 🧷 SAFE LOGGING WITH %.3f (NO F-STRING)
                     threshold_val = 1.0 - float(self.vector_similarity_threshold)
                     logger.info(
                         "Found %d total chunks, %d above similarity threshold %.3f",
@@ -484,10 +580,17 @@ Should this use vector search (documents) or sql search (structured data)?"""
                     )
                     
                     if len(filtered_chunks) == 0 and len(all_chunks) > 0:
-                        logger.warning("No chunks above threshold, returning top %d results", min(5, len(all_chunks)))
+                        logger.warning(
+                            "No chunks above threshold, returning top %d results",
+                            min(5, len(all_chunks)),
+                        )
                         return all_chunks[:5]
                 
-                logger.info("Vector search in %s found %d chunks", selected_table, len(filtered_chunks))
+                logger.info(
+                    "Vector search in %s found %d chunks",
+                    selected_table,
+                    len(filtered_chunks),
+                )
                 return filtered_chunks
                 
             except Exception as e:
@@ -556,7 +659,6 @@ Should this use vector search (documents) or sql search (structured data)?"""
         """
         Generate SQL query for the specific selected table with Turkish language support.
         """
-        # If you want to disable LLM SQL generation in LM Studio, you can return None here.
         schema = self._get_table_schema(table_name)
         if not schema:
             logger.error(f"Could not get schema for table {table_name}")
@@ -600,7 +702,7 @@ Return only the SQL query."""
 
         try:
             resp = self.client.chat.completions.create(
-                model="openai/gpt-oss-20b",
+                model=self.chat_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -619,10 +721,14 @@ Return only the SQL query."""
             upper = sql_query.upper()
             for kw in dangerous:
                 if kw in upper:
-                    logger.warning(f"Generated query contains dangerous keyword: {kw}")
+                    logger.warning("Generated query contains dangerous keyword: %s", kw)
                     return None
             
-            logger.info("Generated SQL for table %s: %s...", table_name, sql_query[:100])
+            logger.info(
+                "Generated SQL for table %s: %s...",
+                table_name,
+                sql_query[:100],
+            )
             return sql_query
         except Exception as e:
             logger.error(f"Error generating SQL query: {str(e)}")
@@ -635,7 +741,11 @@ Return only the SQL query."""
         try:
             if not selected_table:
                 available_tables = self._get_available_tables_by_type('sql')
-                selected_table = self.table_selector.select_table_with_llm(query, 'sql', available_tables)
+                selected_table = self.table_selector.select_table_with_llm(
+                    query,
+                    'sql',
+                    available_tables,
+                )
                 if not selected_table:
                     logger.warning("No SQL table selected")
                     return []
@@ -655,19 +765,26 @@ Return only the SQL query."""
                         row_dict['generated_sql'] = sql_query
                         row_dict['selected_table'] = selected_table
                         results.append(row_dict)
-                    logger.info("SQL search in %s returned %d rows", selected_table, len(results))
+                    logger.info(
+                        "SQL search in %s returned %d rows",
+                        selected_table,
+                        len(results),
+                    )
                     return results[:self.max_sql_results]
                 except Exception as e:
                     logger.error(f"Error executing SQL on {selected_table}: {str(e)}")
-                    logger.error(f"Query was: {sql_query}")
+                    logger.error("Query was: %s", sql_query)
                     return []
         except Exception as e:
             logger.error(f"Error in SQL search: {str(e)}")
             return []
     
-    def hybrid_retrieve(self, query: str,
-                       force_search_type: Optional[str] = None,
-                       force_table: Optional[str] = None) -> RetrievalResult:
+    def hybrid_retrieve(
+        self,
+        query: str,
+        force_search_type: Optional[str] = None,
+        force_table: Optional[str] = None
+    ) -> RetrievalResult:
         """
         Perform hybrid retrieval with LLM-based table selection.
         """
@@ -682,7 +799,7 @@ Return only the SQL query."""
             else:
                 query_type = self._determine_query_type(query)
             
-            logger.info(f"Processing query as type: {query_type}")
+            logger.info("Processing query as type: %s", query_type)
             
             if query_type == 'vector':
                 vector_chunks = self.vector_search(query, force_table)
@@ -693,7 +810,10 @@ Return only the SQL query."""
                 if sql_results:
                     selected_tables['sql'] = sql_results[0].get('selected_table')
             else:
-                logger.warning(f"Unknown query type: {query_type}, defaulting to vector search")
+                logger.warning(
+                    "Unknown query type: %s, defaulting to vector search",
+                    query_type,
+                )
                 vector_chunks = self.vector_search(query, force_table)
                 if vector_chunks:
                     selected_tables['vector'] = vector_chunks[0].get('selected_table')
@@ -734,7 +854,10 @@ Return only the SQL query."""
             return RetrievalResult(
                 vector_chunks=[],
                 sql_results=[],
-                metadata={'error': str(e), 'total_retrieval_time': time.time() - start_time},
+                metadata={
+                    'error': str(e),
+                    'total_retrieval_time': time.time() - start_time
+                },
                 query_info={'original_query': query, 'error': str(e)}
             )
     
@@ -745,7 +868,10 @@ Return only the SQL query."""
             sources_by_type = {}
             for search_type in ['vector', 'sql']:
                 prefixes = self.prefix_config.get_prefixes_by_type(search_type)
-                filtered_tables = self.table_selector._filter_tables_by_prefixes(all_tables, prefixes)
+                filtered_tables = self.table_selector._filter_tables_by_prefixes(
+                    all_tables,
+                    prefixes,
+                )
                 table_details = []
                 for table in filtered_tables:
                     metadata = self.table_selector._get_table_metadata(table)
@@ -776,7 +902,7 @@ Return only the SQL query."""
     def add_table_prefix(self, prefix: str, search_type: str, description: str):
         """Add a new table prefix configuration."""
         self.prefix_config.add_prefix(prefix, search_type, description)
-        logger.info(f"Added new prefix: %s for %s search", prefix, search_type)
+        logger.info("Added new prefix: %s for %s search", prefix, search_type)
     
     def list_tables_by_prefix(self, prefix: str) -> List[str]:
         """List all tables matching a specific prefix."""
@@ -787,7 +913,11 @@ Return only the SQL query."""
         """Test table selection for a given query without performing actual search."""
         try:
             available_tables = self._get_available_tables_by_type(search_type)
-            selected_table = self.table_selector.select_table_with_llm(query, search_type, available_tables)
+            selected_table = self.table_selector.select_table_with_llm(
+                query,
+                search_type,
+                available_tables,
+            )
             return {
                 'query': query,
                 'search_type': search_type,
@@ -816,7 +946,10 @@ Return only the SQL query."""
         """Update search parameters."""
         if similarity_threshold is not None:
             self.vector_similarity_threshold = min(similarity_threshold, 0.25)
-            logger.info("Updated similarity threshold to: %.3f", float(self.vector_similarity_threshold))
+            logger.info(
+                "Updated similarity threshold to: %.3f",
+                float(self.vector_similarity_threshold),
+            )
         if max_vector_results is not None:
             self.max_vector_results = max_vector_results
             logger.info("Updated max vector results to: %d", self.max_vector_results)
@@ -831,11 +964,13 @@ Return only the SQL query."""
 
 
 # Convenience functions for easy integration
-def create_retriever(db_config: Optional[Dict[str, str]] = None,
-                    openai_api_key: Optional[str] = None,
-                    embedding_model: str = "Snowflake/snowflake-arctic-embed-l",
-                    custom_prefixes: Optional[Dict[str, Dict[str, str]]] = None,
-                    openai_client: Optional[Any] = None) -> HybridRetriever:
+def create_retriever(
+    db_config: Optional[Dict[str, str]] = None,
+    openai_api_key: Optional[str] = None,
+    embedding_model: str = "Snowflake/snowflake-arctic-embed-l",
+    custom_prefixes: Optional[Dict[str, Dict[str, str]]] = None,
+    openai_client: Optional[Any] = None
+) -> HybridRetriever:
     """
     Create a HybridRetriever instance with Snowflake Arctic Embed.
 
@@ -861,7 +996,10 @@ def create_retriever(db_config: Optional[Dict[str, str]] = None,
 # Example usage and testing
 if __name__ == "__main__":
     import time
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 
     # Example LM Studio client (adjust base_url/port as needed)
     lm_client = OpenAI(base_url="http://localhost:1234/v1", api_key="not-needed")
@@ -875,6 +1013,7 @@ if __name__ == "__main__":
         sources = retriever.get_available_sources()
         print("Vector tables:", sources.get('sources_by_type', {}).get('vector', {}).get('count'))
         print("SQL tables:",    sources.get('sources_by_type', {}).get('sql', {}).get('count'))
+        print("Chat model used:", retriever.chat_model)
     finally:
         retriever.close()
 
