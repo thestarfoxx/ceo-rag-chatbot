@@ -7,6 +7,7 @@ This version:
 - Initializes ONE shared OpenAI client and passes it everywhere
 - Forces the retriever to use 'Snowflake/snowflake-arctic-embed-l' for embeddings
 - Ensures NO calls go to api.openai.com (sets base_url for the global openai module)
+- Automatically uses whichever chat model is currently exposed by LM Studio
 """
 
 import logging
@@ -49,23 +50,51 @@ openai.api_key = LMSTUDIO_API_KEY
 from openai import OpenAI  # pip install openai>=1.0.0
 client = OpenAI(base_url=LMSTUDIO_BASE_URL, api_key=LMSTUDIO_API_KEY)
 
-# ---------------------------------------------------------------------
-# Import retriever (uses global `openai` module; our base_url/api_key are already set)
-# ---------------------------------------------------------------------
-try:
-    from retriever import HybridRetriever, RetrievalResult, create_retriever
-except ImportError:
-    print("Error: Could not import retriever module. Make sure retriever.py is in the same directory.")
-    sys.exit(1)
+
+def auto_detect_lmstudio_chat_model(lm_client: OpenAI) -> str:
+    """
+    Pick the model that LM Studio is currently exposing via its OpenAI-compatible API.
+
+    Priority:
+    1) If LMSTUDIO_CHAT_MODEL env var is set, use that (manual override).
+    2) Otherwise, call /v1/models and take the first model id.
+    3) If anything fails, fall back to a known default id.
+
+    In LM Studio, this will usually be "whatever is currently loaded" because
+    the server normally exposes a single active model.
+    """
+    env_model = os.getenv("LMSTUDIO_CHAT_MODEL")
+    if env_model:
+        return env_model
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        models = lm_client.models.list()
+        ids = [m.id for m in getattr(models, "data", [])]
+        if ids:
+            # LM Studio typically returns the active model here.
+            return ids[0]
+        logger.warning("LM Studio /v1/models returned no model ids; falling back to default model id.")
+    except Exception as e:
+        logger.warning(f"Could not auto-detect LM Studio model, falling back to default: {e}")
+
+    # Fallback: keep your previous default so behavior is consistent
+    return "openai/gpt-oss-20b"
+
 
 # ---------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------
+# Ensure log directory exists BEFORE configuring logging with FileHandler
+LOG_DIR = Path("data/logs")
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("data/logs/conversation.log"),
+        logging.FileHandler(LOG_DIR / "conversation.log"),
         logging.StreamHandler(sys.stdout),
     ],
 )
@@ -123,14 +152,24 @@ class ConversationContext:
         return "\n".join(parts)
 
 
+# ---------------------------------------------------------------------
+# Import retriever (uses global `openai` module; base_url/api_key already set)
+# ---------------------------------------------------------------------
+try:
+    from retriever import HybridRetriever, RetrievalResult, create_retriever
+except ImportError:
+    print("Error: Could not import retriever module. Make sure retriever.py is in the same directory.")
+    sys.exit(1)
+
+
 # ---------------- Email + LLM helpers (LM Studio) ----------------
 
 class EmailProcessor:
     """Drafts and analyzes emails using the LM Studio client."""
     def __init__(self, lm_client: OpenAI) -> None:
         self.client = lm_client
-        # Set the LM Studio chat model you have loaded
-        self.chat_model = os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b")
+        # Automatically detect active LM Studio chat model
+        self.chat_model = auto_detect_lmstudio_chat_model(self.client)
 
     def draft_email(
         self,
@@ -172,7 +211,13 @@ class EmailProcessor:
             resp = self.client.chat.completions.create(
                 model=self.chat_model,
                 messages=[
-                    {"role": "system", "content": "You are an expert business email writer specializing in executive communications."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an expert business email writer specializing "
+                            "in executive communications."
+                        ),
+                    },
                     {"role": "user", "content": full_prompt},
                 ],
                 max_tokens=1000,
@@ -239,7 +284,13 @@ Provide a detailed analysis covering:
             resp = self.client.chat.completions.create(
                 model=self.chat_model,
                 messages=[
-                    {"role": "system", "content": "You are an expert executive assistant specializing in email analysis and business communications."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an expert executive assistant specializing in email "
+                            "analysis and business communications."
+                        ),
+                    },
                     {"role": "user", "content": analysis_prompt},
                 ],
                 max_tokens=800,
@@ -247,7 +298,11 @@ Provide a detailed analysis covering:
             )
             analysis_content = resp.choices[0].message.content.strip()
 
-            urgency_match = re.search(r"URGENCY LEVEL:\s*(LOW|MEDIUM|HIGH|URGENT)", analysis_content, re.IGNORECASE)
+            urgency_match = re.search(
+                r"URGENCY LEVEL:\s*(LOW|MEDIUM|HIGH|URGENT)",
+                analysis_content,
+                re.IGNORECASE,
+            )
             priority_match = re.search(r"PRIORITY SCORE:\s*(\d+)", analysis_content)
             category_match = re.search(r"CATEGORY:\s*([^\n]+)", analysis_content, re.IGNORECASE)
 
@@ -281,7 +336,7 @@ class QueryClassifier:
     """Classifies queries using LM Studio client (no external calls)."""
     def __init__(self, lm_client: OpenAI) -> None:
         self.client = lm_client
-        self.chat_model = os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b")
+        self.chat_model = auto_detect_lmstudio_chat_model(self.client)
 
     def classify_query(self, query: str, context: str = "") -> Tuple[QueryType, Dict[str, Any]]:
         try:
@@ -323,7 +378,7 @@ Respond with the category name only. If you can, also extract quick params such 
                     break
 
             if not query_type:
-                # simple fallback
+                # Simple fallback heuristic
                 ql = query.lower()
                 if any(w in ql for w in ["draft", "write", "compose", "email to"]):
                     query_type = QueryType.EMAIL_DRAFT
@@ -345,7 +400,7 @@ Respond with the category name only. If you can, also extract quick params such 
 
         except Exception as e:
             logger.error(f"Error classifying query: {str(e)}")
-            # simple fallback
+            # Simple fallback
             ql = query.lower()
             if any(w in ql for w in ["draft", "write", "compose", "email to"]):
                 qt = QueryType.EMAIL_DRAFT
@@ -366,8 +421,16 @@ Respond with the category name only. If you can, also extract quick params such 
     def _extract_query_info(self, query: str, query_type: QueryType) -> Dict[str, Any]:
         info: Dict[str, Any] = {}
         if query_type == QueryType.EMAIL_DRAFT:
-            recipient_match = re.search(r"(?:to|email)\s+(.+?)(?:\s+about|\s+regarding|$)", query, re.IGNORECASE)
-            subject_match = re.search(r"(?:about|regarding|subject)\s+(.+)", query, re.IGNORECASE)
+            recipient_match = re.search(
+                r"(?:to|email)\s+(.+?)(?:\s+about|\s+regarding|$)",
+                query,
+                re.IGNORECASE,
+            )
+            subject_match = re.search(
+                r"(?:about|regarding|subject)\s+(.+)",
+                query,
+                re.IGNORECASE,
+            )
             info["recipient"] = recipient_match.group(1).strip() if recipient_match else ""
             info["subject"] = subject_match.group(1).strip() if subject_match else ""
             info["content_request"] = query
@@ -386,7 +449,7 @@ class ResponseAnalyzer:
     """Synthesizes results using LM Studio client."""
     def __init__(self, lm_client: OpenAI) -> None:
         self.client = lm_client
-        self.chat_model = os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b")
+        self.chat_model = auto_detect_lmstudio_chat_model(self.client)
 
     def analyze_document_chunks(
         self,
@@ -410,18 +473,17 @@ class ResponseAnalyzer:
                     "content": chunk.get("text", "")[:1500],
                 })
 
-            synthesis_prompt = f"""You are an expert business analyst reviewing document search results for a CEO.
-ORIGINAL QUERY: {query}
-
-CONVERSATION CONTEXT:
-{conversation_context}
-
-RETRIEVED INFORMATION:
-"""
+            synthesis_prompt = (
+                "You are an expert business analyst reviewing document search results for a CEO.\n"
+                f"ORIGINAL QUERY: {query}\n\n"
+                f"CONVERSATION CONTEXT:\n{conversation_context}\n\n"
+                "RETRIEVED INFORMATION:\n"
+            )
             for c in chunk_info:
                 sim_display = round(c["similarity"], 3)
                 synthesis_prompt += (
-                    f"\nDocument {c['index']}: {c['source']} (Page {c['page']}, Relevance: {sim_display})\n"
+                    f"\nDocument {c['index']}: {c['source']} "
+                    f"(Page {c['page']}, Relevance: {sim_display})\n"
                     f"Content: {c['content']}\n---\n"
                 )
             synthesis_prompt += """
@@ -449,23 +511,27 @@ RESPONSE FORMAT:
             )
             synthesized = resp.choices[0].message.content.strip()
 
-            unique_sources = {c['source'] for c in chunk_info}
+            unique_sources = {c["source"] for c in chunk_info}
             if chunks:
-                avg_sim = sum(
-                    float(ch.get("similarity_score", 0.0)) if isinstance(ch.get("similarity_score", 0.0), (int, float, str)) else 0.0
-                    for ch in chunks
-                ) / max(1, len(chunks))
+                total_sim = 0.0
+                for ch in chunks:
+                    sim_val = ch.get("similarity_score", 0.0)
+                    try:
+                        total_sim += float(sim_val)
+                    except (TypeError, ValueError):
+                        total_sim += 0.0
+                avg_sim = total_sim / max(1, len(chunks))
             else:
                 avg_sim = 0.0
             avg_sim_display = round(avg_sim, 3)
 
-            footer = f"""
-
-📊 Analysis Metadata:
-• Sources analyzed: {len(unique_sources)} ({', '.join(sorted(unique_sources))})
-• Chunks considered: {len(chunks)} total, {len(chunk_info)} in detail
-• Avg relevance: {avg_sim_display}
-• Model: {self.chat_model}"""
+            footer = (
+                "\n\n📊 Analysis Metadata:\n"
+                f"• Sources analyzed: {len(unique_sources)} ({', '.join(sorted(unique_sources))})\n"
+                f"• Chunks considered: {len(chunks)} total, {len(chunk_info)} in detail\n"
+                f"• Avg relevance: {avg_sim_display}\n"
+                f"• Model: {self.chat_model}"
+            )
             return synthesized + footer
         except Exception as e:
             logger.error(f"Error analyzing document chunks: {str(e)}")
@@ -488,6 +554,15 @@ RESPONSE FORMAT:
                 "sample": results[:5],
             }
 
+            filtered_sample = [
+                {
+                    k: v
+                    for k, v in row.items()
+                    if k not in ["source_type", "generated_sql", "selected_table"]
+                }
+                for row in results[:5]
+            ]
+
             prompt = f"""You are a senior business intelligence analyst.
 ORIGINAL QUERY: {query}
 
@@ -502,7 +577,7 @@ DATA SUMMARY:
 - Columns: {', '.join([c for c in data_summary['columns'] if c not in ['source_type','generated_sql','selected_table']])}
 
 SAMPLE:
-{json.dumps([{k: v for k, v in row.items() if k not in ['source_type','generated_sql','selected_table']} for row in results[:5]], indent=2)}
+{json.dumps(filtered_sample, indent=2)}
 
 INSTRUCTIONS:
 - Give an executive summary
@@ -522,13 +597,13 @@ INSTRUCTIONS:
             )
             analyzed = resp.choices[0].message.content.strip()
 
-            meta = f"""
-
-🔧 Technical:
-• Records: {data_summary['row_count']}
-• Source table: {results[0].get('selected_table', 'Unknown')}
-• Model: {self.chat_model}
-• SQL (truncated): {generated_sql[:100]}{'...' if len(generated_sql) > 100 else ''}"""
+            meta = (
+                "\n\n🔧 Technical:\n"
+                f"• Records: {data_summary['row_count']}\n"
+                f"• Source table: {results[0].get('selected_table', 'Unknown')}\n"
+                f"• Model: {self.chat_model}\n"
+                f"• SQL (truncated): {generated_sql[:100]}{'...' if len(generated_sql) > 100 else ''}"
+            )
             return analyzed + meta
         except Exception as e:
             logger.error(f"Error analyzing data results: {str(e)}")
@@ -542,15 +617,12 @@ INSTRUCTIONS:
         conversation_context: str = "",
     ) -> str:
         try:
-            prompt = f"""You are a senior executive advisor combining documents and data.
-
-QUERY: {query}
-
-CONTEXT:
-{conversation_context}
-
-DOCUMENTS:
-"""
+            prompt = (
+                "You are a senior executive advisor combining documents and data.\n\n"
+                f"QUERY: {query}\n\n"
+                f"CONTEXT:\n{conversation_context}\n\n"
+                "DOCUMENTS:\n"
+            )
             if vector_chunks:
                 for i, ch in enumerate(vector_chunks[:3], 1):
                     sim_val = ch.get("similarity_score", 0.0)
@@ -559,14 +631,20 @@ DOCUMENTS:
                     except (TypeError, ValueError):
                         sim_float = 0.0
                     sim_display = round(sim_float, 3)
-                    prompt += f"\nDoc {i}: {ch.get('file_name', 'Unknown')} (p{ch.get('page_number',1)}), rel={sim_display}\n"
-                    prompt += f"Excerpt: {ch.get('text','')[:800]}\n---\n"
+                    prompt += (
+                        f"\nDoc {i}: {ch.get('file_name', 'Unknown')} "
+                        f"(p{ch.get('page_number', 1)}), rel={sim_display}\n"
+                        f"Excerpt: {ch.get('text', '')[:800]}\n---\n"
+                    )
             else:
                 prompt += "No relevant documents.\n"
 
             prompt += "\nDATA:\n"
             if sql_results:
-                prompt += f"Rows: {len(sql_results)}\nSample: {json.dumps(sql_results[:3], indent=2)}\n"
+                prompt += (
+                    f"Rows: {len(sql_results)}\n"
+                    f"Sample: {json.dumps(sql_results[:3], indent=2)}\n"
+                )
             else:
                 prompt += "No structured data found.\n"
 
@@ -583,7 +661,10 @@ INSTRUCTIONS:
             resp = self.client.chat.completions.create(
                 model=self.chat_model,
                 messages=[
-                    {"role": "system", "content": "You synthesize multiple sources for executives."},
+                    {
+                        "role": "system",
+                        "content": "You synthesize multiple sources for executives.",
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 max_tokens=1500,
@@ -636,18 +717,23 @@ class ConversationalRAGSystem:
             "reset": "\033[0m",
             "bold": "\033[1m",
         }
-        logger.info("ConversationalRAGSystem initialized (LM Studio + Snowflake embeddings)")
+        logger.info(
+            "ConversationalRAGSystem initialized "
+            "(LM Studio + Snowflake embeddings, auto chat model)"
+        )
 
     def print_colored(self, text: str, color_key: str = "reset") -> None:
         color = self.colors.get(color_key, self.colors["reset"])
         print(f"{color}{text}{self.colors['reset']}")
 
     def display_welcome(self) -> None:
+        chat_model = self.query_classifier.chat_model
         welcome_msg = f"""
 {self.colors['bold']}🤖 CEO RAG Chatbot - Console Interface{self.colors['reset']}
 {self.colors['system']}{'='*60}{self.colors['reset']}
 
 Using LM Studio at {LMSTUDIO_BASE_URL}
+Chat model (auto-detected): {chat_model}
 Embedding model: Snowflake/snowflake-arctic-embed-l
 
 📄 Document Search  •  📊 Data Analysis  •  ✉️ Email Drafting  •  📧 Email Analysis  •  💬 General Chat
@@ -683,6 +769,7 @@ Quit:            "quit"
 
 ✅ Retriever: Active
 ✅ LM Studio: {LMSTUDIO_BASE_URL}
+✅ Chat model: {self.query_classifier.chat_model}
 ✅ Embeddings: Snowflake/snowflake-arctic-embed-l
 """
             print(status_text)
@@ -705,13 +792,19 @@ Quit:            "quit"
                 print()
             search_params = sources.get("search_parameters", {})
             print(f"{self.colors['bold']}⚙️ Search Configuration:{self.colors['reset']}")
-            print(f"  Vector Similarity Threshold: {search_params.get('vector_similarity_threshold', 0.7)}")
+            print(
+                f"  Vector Similarity Threshold: "
+                f"{search_params.get('vector_similarity_threshold', 0.7)}"
+            )
             print(f"  Max Vector Results: {search_params.get('max_vector_results', 10)}")
             print(f"  Max SQL Results: {search_params.get('max_sql_results', 50)}")
             print(f"\n{self.colors['bold']}💬 Session:{self.colors['reset']}")
             print(f"  Started: {self.context.session_start.strftime('%Y-%m-%d %H:%M:%S')}")
             print(f"  Exchanges: {len(self.context.history)}")
-            print(f"  Last Query: {self.context.last_query_type.value if self.context.last_query_type else 'None'}")
+            print(
+                f"  Last Query: "
+                f"{self.context.last_query_type.value if self.context.last_query_type else 'None'}"
+            )
             print(f"\n{self.colors['system']}{'='*50}{self.colors['reset']}")
         except Exception as e:
             self.print_colored(f"❌ Error checking system status: {str(e)}", "error")
@@ -750,9 +843,9 @@ Quit:            "quit"
                 chunks=result.vector_chunks,
                 conversation_context=self.context.get_context_string(2),
             )
-            unique_docs = {ch.get('file_name') for ch in result.vector_chunks}
+            unique_docs = {ch.get("file_name") for ch in result.vector_chunks}
             return (
-                f"🔍 **Document Search Summary**\n"
+                "🔍 **Document Search Summary**\n"
                 f"• Sections: {len(result.vector_chunks)} across {len(unique_docs)} documents\n"
                 f"• Time: {result.metadata.get('total_retrieval_time', 0):.2f}s\n\n"
                 f"📊 **AI Analysis**\n{analyzed}"
@@ -777,7 +870,7 @@ Quit:            "quit"
                 conversation_context=self.context.get_context_string(2),
             )
             return (
-                f"📊 **Data Query Summary**\n"
+                "📊 **Data Query Summary**\n"
                 f"• Rows: {len(result.sql_results)}\n"
                 f"• Time: {result.metadata.get('total_retrieval_time', 0):.2f}s\n\n"
                 f"🧠 **AI Analysis**\n{analyzed}"
@@ -800,7 +893,7 @@ Quit:            "quit"
                 conversation_context=self.context.get_context_string(2),
             )
             return (
-                f"🔍 **Comprehensive Search Summary**\n"
+                "🔍 **Comprehensive Search Summary**\n"
                 f"• Doc chunks: {len(result.vector_chunks)}\n"
                 f"• Data rows: {len(result.sql_results)}\n"
                 f"• Time: {result.metadata.get('total_retrieval_time', 0):.2f}s\n\n"
@@ -822,7 +915,7 @@ Quit:            "quit"
                 context=context,
             )
             if not result["success"]:
-                return f"❌ Error drafting email: {result.get('error','unknown')}"
+                return f"❌ Error drafting email: {result.get('error', 'unknown')}"
             email = result["email"]
             return (
                 "✉️ Email Draft\n\n"
@@ -846,9 +939,14 @@ Quit:            "quit"
             received_date = date_match.group(1).strip() if date_match else ""
             result = self.email_processor.analyze_email(email_content, sender, received_date)
             if not result["success"]:
-                return f"❌ Error analyzing email: {result.get('error','unknown')}"
+                return f"❌ Error analyzing email: {result.get('error', 'unknown')}"
             a = result["analysis"]
-            icon = {"LOW":"🟢","MEDIUM":"🟡","HIGH":"🟠","URGENT":"🔴"}.get(a["urgency_level"], "🟡")
+            icon = {
+                "LOW": "🟢",
+                "MEDIUM": "🟡",
+                "HIGH": "🟠",
+                "URGENT": "🔴",
+            }.get(a["urgency_level"], "🟡")
             return (
                 "📧 Email Analysis\n\n"
                 f"{icon} Urgency: {a['urgency_level']} (Priority {a['priority_score']}/10)\n"
@@ -866,10 +964,10 @@ Quit:            "quit"
         try:
             sources = self.retriever.get_available_sources()
             context_info = (
-                f"\nCapabilities:\n"
+                "\nCapabilities:\n"
                 f"- {sources.get('sources_by_type', {}).get('vector', {}).get('count', 0)} document sources\n"
                 f"- {sources.get('sources_by_type', {}).get('sql', {}).get('count', 0)} data tables\n"
-                f"- Email drafting/analysis\n"
+                "- Email drafting/analysis\n"
             )
             system_prompt = (
                 "You are a helpful assistant for a CEO's RAG system. "
@@ -878,7 +976,7 @@ Quit:            "quit"
                 f"Conversation context:\n{self.context.get_context_string(3)}"
             )
             resp = self.client.chat.completions.create(
-                model=os.getenv("LMSTUDIO_CHAT_MODEL", "openai/gpt-oss-20b"),
+                model=self.query_classifier.chat_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query},
@@ -889,21 +987,38 @@ Quit:            "quit"
             return resp.choices[0].message.content.strip()
         except Exception as e:
             logger.error(f"Error in general chat: {str(e)}")
-            return "I can search documents, analyze data, draft emails, or chat. What would you like to do?"
+            return (
+                "I can search documents, analyze data, draft emails, or chat. "
+                "What would you like to do?"
+            )
 
     def _should_attempt_hybrid_search(self, query: str, initial_response: str) -> bool:
         indicators = ["compare", "analysis", "comprehensive", "relationship", "trend", "pattern"]
         ql = query.lower()
         has_indicators = any(x in ql for x in indicators)
-        limited = any(x in initial_response.lower() for x in ["no data", "no results", "didn't find"])
-        biz_terms = ["performance", "revenue", "profit", "financial", "quarter", "strategy", "budget"]
+        limited = any(
+            x in initial_response.lower()
+            for x in ["no data", "no results", "didn't find"]
+        )
+        biz_terms = [
+            "performance",
+            "revenue",
+            "profit",
+            "financial",
+            "quarter",
+            "strategy",
+            "budget",
+        ]
         has_biz = any(x in ql for x in biz_terms)
         return has_indicators or limited or has_biz
 
     def process_query(self, query: str) -> str:
         start = time.time()
         try:
-            qtype, extracted = self.query_classifier.classify_query(query, self.context.get_context_string(3))
+            qtype, extracted = self.query_classifier.classify_query(
+                query,
+                self.context.get_context_string(3),
+            )
             logger.info(f"Query classified as: {qtype.value}")
 
             if qtype == QueryType.DOCUMENT_SEARCH:
@@ -925,7 +1040,10 @@ Quit:            "quit"
 
             if qtype in [QueryType.DOCUMENT_SEARCH, QueryType.DATA_QUERY]:
                 if self._should_attempt_hybrid_search(query, resp):
-                    self.print_colored("🔄 Trying comprehensive (hybrid) search...", "system")
+                    self.print_colored(
+                        "🔄 Trying comprehensive (hybrid) search...",
+                        "system",
+                    )
                     hybrid = self.handle_hybrid_search(query, extracted)
                     if len(hybrid) > len(resp):
                         resp = hybrid
@@ -936,7 +1054,12 @@ Quit:            "quit"
         except Exception as e:
             logger.error(f"Error processing query: {str(e)}")
             err = f"❌ Error: {str(e)}"
-            self.context.add_exchange(query, err, QueryType.GENERAL_CHAT, {"error": str(e)})
+            self.context.add_exchange(
+                query,
+                err,
+                QueryType.GENERAL_CHAT,
+                {"error": str(e)},
+            )
             return err
 
     def run_console_loop(self) -> None:
@@ -954,11 +1077,14 @@ Quit:            "quit"
                     self.is_running = False
                     break
                 elif low == "help":
-                    self.display_help(); continue
+                    self.display_help()
+                    continue
                 elif low == "status":
-                    self.display_system_status(); continue
+                    self.display_system_status()
+                    continue
                 elif low == "history":
-                    self.display_conversation_history(); continue
+                    self.display_conversation_history()
+                    continue
                 elif low == "clear":
                     self.context.history.clear()
                     self.print_colored("🗑️ History cleared.", "system")
@@ -994,6 +1120,7 @@ def create_console_rag_system(db_config: Dict[str, str] = None) -> Conversationa
 
 def main() -> int:
     print("🚀 Starting CEO RAG Chatbot (LM Studio)...")
+    # Directory ensured at top, but keeping this is harmless
     log_dir = Path("data/logs")
     log_dir.mkdir(parents=True, exist_ok=True)
     try:
